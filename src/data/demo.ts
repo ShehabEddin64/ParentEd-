@@ -213,6 +213,7 @@ export class DemoGateway implements Gateway {
       case "groups":
       case "exams":
       case "exam_questions":
+      case "app_settings":
         return admin;
       case "events": {
         const e = row as Tables["events"];

@@ -767,3 +767,39 @@ describe.sequential("Migration V6 : quotas de l’assistant", () => {
     expect(all[0].input_tokens).toBe(120);
   });
 });
+describe.sequential(
+  "Migration V7 : cadence et interrupteur de l’assistant",
+  () => {
+    it("impose un délai entre deux questions et laisse l’équipe couper l’assistant", async () => {
+      await actor(b);
+      const first = (
+        await rows("select public.assistant_allow(10, 100) as r")
+      )[0].r as { allowed: boolean; reason?: string };
+      expect(first.allowed || first.reason === "pace").toBe(true);
+      const second = (
+        await rows("select public.assistant_allow(10, 100) as r")
+      )[0].r as { allowed: boolean; reason?: string };
+      expect(second).toMatchObject({ allowed: false, reason: "pace" });
+      await expect(
+        db.exec(
+          "update app_settings set value='false' where key='assistant_enabled'",
+        ),
+      ).resolves.toBeDefined();
+      expect(
+        await rows("select * from app_settings where value='false'"),
+      ).toHaveLength(0);
+      await actor(admin);
+      await db.exec(
+        "update app_settings set value='false' where key='assistant_enabled'",
+      );
+      await actor(a);
+      expect(
+        (await rows("select public.assistant_allow(10, 100) as r"))[0].r,
+      ).toMatchObject({ allowed: false, reason: "disabled" });
+      await actor(admin);
+      await db.exec(
+        "update app_settings set value='true' where key='assistant_enabled'",
+      );
+    });
+  },
+);

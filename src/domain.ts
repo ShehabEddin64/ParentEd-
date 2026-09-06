@@ -319,6 +319,12 @@ export type Note = {
   body: string;
   created_at: string;
 };
+export type AppSetting = {
+  id: string;
+  key: string;
+  value: string;
+  updated_at: string;
+};
 export type AssistantUsage = {
   id: string;
   user_id: string;
@@ -366,6 +372,7 @@ export type Tables = {
   curriculum_items: CurriculumItem;
   grades: Grade;
   assistant_usage: AssistantUsage;
+  app_settings: AppSetting;
 };
 export type Table = keyof Tables;
 export type Data = { [K in Table]: Tables[K][] };
@@ -408,12 +415,14 @@ export const tableNames: Table[] = [
   "curriculum_items",
   "grades",
   "assistant_usage",
+  "app_settings",
 ];
 /** Views: loaded, never written. */
 export const readOnlyTables: Table[] = [
   "members",
   "event_counts",
   "assistant_usage",
+  "app_settings",
 ];
 /** Tables whose rows belong to a family or a person; never shared. */
 export const privateTables: Table[] = [

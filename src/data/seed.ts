@@ -1490,6 +1490,14 @@ export const seed: Data = {
     },
   ],
   assistant_usage: [],
+  app_settings: [
+    {
+      id: "assistant_enabled",
+      key: "assistant_enabled",
+      value: "true",
+      updated_at: "2026-09-06T12:00:00Z",
+    },
+  ],
   tutor_reviews: [
     {
       id: "65000000-0000-4000-8000-000000000001",

@@ -1128,7 +1128,8 @@ function Shortcuts({ myTutor }: Ctx) {
     </>
   );
 }
-function AdminDashboard({ data, profile, api }: Props) {
+function AdminDashboard(props: Props) {
+  const { data, profile, api } = props;
   const today = api.mode === "demo" ? "2026-09-07" : localDate();
   const monthStart = today.slice(0, 7) + "-01";
   const parents = data.members.filter((m) => m.role === "parent");
@@ -1348,7 +1349,7 @@ function AdminDashboard({ data, profile, api }: Props) {
             title="Assistant : usage et coût"
             icon={<Sparkles size={18} />}
           />
-          <AssistantUsage data={data} today={today} />
+          <AssistantUsage {...props} today={today} />
         </article>
         <article
           className="widget lg rise"
@@ -1394,8 +1395,43 @@ function Kpi({ n, label, link }: { n: number; label: string; link: string }) {
   );
 }
 
-function AssistantUsage({ data, today }: { data: Data; today: string }) {
+function AssistantUsage({
+  data,
+  api,
+  run,
+  busy,
+  today,
+}: Props & { today: string }) {
   const month = today.slice(0, 7);
+  const setting = data.app_settings.find((s) => s.key === "assistant_enabled");
+  const enabled = (setting?.value ?? "true") === "true";
+  const toggle = () =>
+    run(
+      () =>
+        setting
+          ? api.patch("app_settings", "assistant_enabled", {
+              value: enabled ? "false" : "true",
+              updated_at: new Date().toISOString(),
+            })
+          : api.save("app_settings", {
+              id: "assistant_enabled",
+              key: "assistant_enabled",
+              value: "false",
+              updated_at: new Date().toISOString(),
+            }),
+      enabled
+        ? "Assistant IA mis en pause pour tous les membres."
+        : "Assistant IA réactivé.",
+    );
+  const killSwitch = (
+    <button
+      className={`button ${enabled ? "secondary" : "primary"}`}
+      disabled={busy}
+      onClick={toggle}
+    >
+      {enabled ? "Mettre l’assistant IA en pause" : "Réactiver l’assistant IA"}
+    </button>
+  );
   const rows = data.assistant_usage;
   const sum = (
     list: typeof rows,
@@ -1416,6 +1452,7 @@ function AssistantUsage({ data, today }: { data: Data; today: string }) {
           « Besoin d’aide ? » utilise seulement la recherche intégrée, sans
           coût.
         </p>
+        {killSwitch}
       </div>
     );
   return (
@@ -1443,6 +1480,7 @@ function AssistantUsage({ data, today }: { data: Data; today: string }) {
         Les quotas par membre et global se règlent dans les secrets de la
         fonction « assistant ».
       </small>
+      {killSwitch}
     </>
   );
 }
