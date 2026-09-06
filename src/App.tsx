@@ -36,6 +36,8 @@ import { Profile as ProfilePage } from "./components/Profile";
 import { Exams } from "./components/Exams";
 import { Dashboard } from "./components/Dashboard";
 import { Assistant } from "./components/Assistant";
+import { Legal } from "./components/Legal";
+import { legalLinks } from "./legal";
 import { pages } from "./images";
 import { Admin } from "./components/Admin";
 export type Run = (
@@ -73,6 +75,10 @@ function authHash() {
 function currentPage() {
   if (authHash()) return "accueil";
   return window.location.hash.slice(1).split("/")[0] || "accueil";
+}
+function legalSlug() {
+  const [page, slug = ""] = window.location.hash.slice(1).split("/");
+  return page === "legal" ? slug || "confidentialite" : "";
 }
 export default function App() {
   const [api, setApi] = useState<Gateway | null>(initialApi);
@@ -264,6 +270,15 @@ export default function App() {
       <div className="loading-screen">
         <img src="/parented-logo.png" alt="parentEd" />
         <p role="status">Ouverture de votre espace…</p>
+      </div>
+    );
+  if (page === "legal")
+    return (
+      <div className="legal-page">
+        <a className="brand" href={profile ? "#accueil" : "#"}>
+          <img src="/parented-logo.png" alt="parentEd" />
+        </a>
+        <Legal slug={legalSlug()} back={profile ? "#accueil" : "#"} />
       </div>
     );
   if (!profile)
@@ -462,6 +477,13 @@ export default function App() {
         {props && <Assistant {...props} />}
         <footer>
           parentEd <span>À votre rythme. Ensemble.</span>
+          <nav className="footer-links" aria-label="Mentions légales">
+            {legalLinks.map((l) => (
+              <a key={l.href} href={l.href}>
+                {l.label}
+              </a>
+            ))}
+          </nav>
           {api?.mode === "demo" && (
             <small>Sauvegarde dans ce navigateur uniquement</small>
           )}
@@ -663,11 +685,14 @@ function Login({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [accepted, setAccepted] = useState(false);
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (mode === "login") void login(email, password);
-    else if (mode === "signup") void signup(email, password, name);
-    else void reset(email);
+    else if (mode === "signup") {
+      if (!accepted) return;
+      void signup(email, password, name);
+    } else void reset(email);
   };
   return (
     <div className="login">
@@ -693,6 +718,13 @@ function Login({
           Les cours ParentEd s’adressent aux parents-éducateurs. ParentEd n’est
           ni une école ni une garantie de conformité gouvernementale.
         </small>
+        <nav className="footer-links" aria-label="Mentions légales">
+          {legalLinks.map((l) => (
+            <a key={l.href} href={l.href}>
+              {l.label}
+            </a>
+          ))}
+        </nav>
       </section>
       <section className="login-panel">
         <div className="login-form">
@@ -761,11 +793,23 @@ function Login({
                 </label>
               )}
               {mode === "signup" && (
-                <p className="muted small">
-                  12 caractères minimum. En créant un compte, vous acceptez que
-                  ParentEd conserve votre courriel et vos données familiales
-                  pour fournir le service.
-                </p>
+                <label className="checkbox-label terms">
+                  <input
+                    type="checkbox"
+                    checked={accepted}
+                    onChange={(e) => setAccepted(e.target.checked)}
+                    required
+                  />
+                  <span>
+                    J’ai lu et j’accepte les{" "}
+                    <a href="#legal/conditions">conditions d’utilisation</a> et
+                    la{" "}
+                    <a href="#legal/confidentialite">
+                      politique de confidentialité
+                    </a>
+                    . 12 caractères minimum pour le mot de passe.
+                  </span>
+                </label>
               )}
               <button className="button primary" disabled={busy}>
                 {busy

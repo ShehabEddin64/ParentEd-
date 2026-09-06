@@ -159,6 +159,8 @@ export class DemoGateway implements Gateway {
         const m = row as Tables["messages"];
         return m.sender_id === p.id || m.recipient_id === p.id;
       }
+      case "assistant_usage":
+        return (row as { user_id: string }).user_id === p.id || admin;
       case "progress":
       case "registrations":
       case "favorites":

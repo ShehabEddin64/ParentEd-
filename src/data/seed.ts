@@ -1489,6 +1489,7 @@ export const seed: Data = {
       weight: 1,
     },
   ],
+  assistant_usage: [],
   tutor_reviews: [
     {
       id: "65000000-0000-4000-8000-000000000001",

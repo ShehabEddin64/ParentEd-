@@ -58,9 +58,14 @@ Mis à jour le 6 septembre 2026 (troisième itération).
 - **Assistant « Besoin d’aide ? »** : panneau flottant; recherche locale dans cours, leçons, ressources, examens, rencontres et pages, avec réponses préparées aux questions fréquentes; fonction Edge `assistant` (Claude, clé à fournir) pour des réponses en langage naturel à partir des contenus publics.
 - 42 tests.
 
+### Huitième itération : coût de l’assistant, mentions légales
+- Assistant : migration V6 (`assistant_usage`, `assistant_allow`, `assistant_record`), quota quotidien par membre et plafond global appliqués en base, limites de longueur, historique court, journal des jetons; compteur de questions restantes dans le panneau; widget « Assistant : usage et coût » sur l’accueil de l’administration; modèle et quotas configurables par secrets.
+- Mentions légales dans l’application (`#legal/...`, accessibles sans connexion) : politique de confidentialité (Loi 25), politique sur les témoins, conditions d’utilisation, paiement/annulation/remboursement (phase sans paiement). Liens sur la page de connexion et le pied de page; case d’acceptation obligatoire à l’inscription, version enregistrée dans les métadonnées du compte. Champs « À COMPLÉTER » mis en évidence.
+- `docs/juridique.md` : liste de contrôle Loi 25, LPC/OPC, contenus, IA, accessibilité, en préparation de la page d’accueil publique.
+
 ## Vérifications exécutées
 
-- `npm test` : **42 tests réussis**, dont **27 tests PostgreSQL/PGlite** exécutant les cinq migrations (tutorat, propositions, favoris, groupes, questions, familles, profils, annuaire, messages, notifications, j’aime, avis).
+- `npm test` : **43 tests réussis**, dont **28 tests PostgreSQL/PGlite** exécutant les six migrations (tutorat, propositions, favoris, groupes, questions, familles, profils, annuaire, messages, notifications, j’aime, avis).
 - `npm run build` et `tsc -b` réussis; `npm run format:check` réussi; `wrangler deploy --dry-run` réussi, sans publication.
 - Navigateur (Vite 5173, ordinateur 1280 px et mobile 375 px) : accueil, tutorat, rencontres avec annonce à la une et récurrence, communauté avec groupes, semaine avec plan hebdomadaire et séance de tutorat, leçon avec modèle/note/questions, portfolio; flux exécutés : demande de séance (refus d’un jour sans disponibilité, puis acceptation), favori, adhésion à un groupe, proposition de rencontre visible par l’administration, espace tutrice Nadia avec ses séances.
 

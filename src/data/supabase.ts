@@ -10,6 +10,7 @@ import {
   type Tables,
 } from "../domain";
 import type { AuthEvent, Gateway } from "./gateway";
+import { termsVersion } from "../legal";
 export const configured = Boolean(
   import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY,
 );
@@ -69,7 +70,10 @@ export class SupabaseGateway implements Gateway {
       email,
       password,
       options: {
-        data: { display_name: required(displayName, 80) },
+        data: {
+          display_name: required(displayName, 80),
+          accepted_terms: termsVersion,
+        },
         emailRedirectTo: window.location.origin,
       },
     });
@@ -168,17 +172,30 @@ export class SupabaseGateway implements Gateway {
     const { data, error } = await this.client.functions.invoke("assistant", {
       body: { messages },
     });
-    const r = data as {
+    type Reply = {
       available?: boolean;
       answer?: string;
       error?: string;
-    } | null;
+      remaining?: number;
+    };
+    let r = data as Reply | null;
+    if (error) {
+      // Non-2xx answers carry their JSON body on the error context.
+      const ctx = (error as { context?: Response }).context;
+      r = ctx
+        ? await ctx
+            .clone()
+            .json()
+            .then((j: Reply) => j)
+            .catch(() => null)
+        : null;
+    }
     if (r && r.available === false) return null;
-    if (error || !r?.answer)
+    if (!r?.answer)
       throw new Error(
         r?.error ?? "L’assistant est indisponible pour le moment.",
       );
-    return r.answer;
+    return { answer: r.answer, remaining: r.remaining };
   }
   async upload(file: File, family: string) {
     validateFile(file);

@@ -142,19 +142,29 @@ npx supabase functions deploy booking-email
 
 Sans clé, la fonction répond « non envoyé » et l’application n’affiche simplement pas la mention « courriel envoyé ».
 
-## 7 ter. Assistant « Besoin d’aide ? » avec Claude (facultatif)
+## 7 ter. Assistant « Besoin d’aide ? » avec Claude (facultatif) et maîtrise du coût
 
-Le bouton « Besoin d’aide ? » fonctionne sans configuration : il cherche dans les cours, ressources, examens et pages de ParentEd. Pour des réponses en langage naturel fondées sur ces contenus, déployer la fonction `assistant` avec une clé API Anthropic :
+Le bouton « Besoin d’aide ? » fonctionne sans configuration : il cherche dans les cours, ressources, examens et pages de ParentEd, sans coût. Pour des réponses en langage naturel, déployer la fonction `assistant` avec une clé API Anthropic. Exécuter d’abord la migration `202609060006_parented_v6.sql` (quotas).
 
 ```bash
-npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-... ASSISTANT_DAILY_LIMIT=20 ASSISTANT_GLOBAL_DAILY_LIMIT=400
 ```
 
 ```bash
 npx supabase functions deploy assistant
 ```
 
-La fonction utilise le modèle `claude-opus-5`, n’envoie que la question du parent et les contenus publics de ParentEd (jamais les données familiales), et rappelle systématiquement que les démarches officielles relèvent des sources gouvernementales. Chaque question a un coût API : surveiller la consommation dans la console Anthropic.
+Garde-fous intégrés, impossibles à contourner depuis le navigateur :
+
+- membres connectés seulement; la clé n’est jamais dans le site;
+- **quota par membre et par jour** (`ASSISTANT_DAILY_LIMIT`, 20 par défaut) et **plafond global quotidien** (`ASSISTANT_GLOBAL_DAILY_LIMIT`, 400 par défaut), appliqués dans la base par `assistant_allow` avant chaque appel;
+- question limitée à 1 000 caractères, historique à 6 messages, réponse à 700 jetons, consigne de brièveté;
+- consigne système mise en cache pour réduire le coût des jetons d’entrée;
+- jetons consommés enregistrés par membre et par jour (`assistant_usage`), visibles sur l’accueil de l’administration avec une estimation de coût.
+
+Modèle : `claude-opus-5` par défaut (environ 5 $ US par million de jetons entrés, 25 $ par million produits). Pour diviser le coût par cinq environ, choisir Haiku : `npx supabase secrets set ASSISTANT_MODEL=claude-haiku-4-5`. Ordre de grandeur avec Opus 5 : une question coûte quelques centièmes de dollar; 400 questions par jour au maximum représentent au plus quelques dollars par jour. Fixer aussi une limite de dépense mensuelle dans la console Anthropic (Settings → Limits).
+
+L’assistant n’envoie que la question et les contenus publics de ParentEd (jamais les données familiales) et rappelle que les démarches officielles relèvent des sources gouvernementales.
 
 ## 8. Sécurité et exploitation
 

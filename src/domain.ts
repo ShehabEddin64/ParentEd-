@@ -319,6 +319,14 @@ export type Note = {
   body: string;
   created_at: string;
 };
+export type AssistantUsage = {
+  id: string;
+  user_id: string;
+  day: string;
+  questions: number;
+  input_tokens: number;
+  output_tokens: number;
+};
 export type Tables = {
   profiles: Profile;
   courses: Course;
@@ -357,6 +365,7 @@ export type Tables = {
   curricula: Curriculum;
   curriculum_items: CurriculumItem;
   grades: Grade;
+  assistant_usage: AssistantUsage;
 };
 export type Table = keyof Tables;
 export type Data = { [K in Table]: Tables[K][] };
@@ -398,9 +407,14 @@ export const tableNames: Table[] = [
   "curricula",
   "curriculum_items",
   "grades",
+  "assistant_usage",
 ];
 /** Views: loaded, never written. */
-export const readOnlyTables: Table[] = ["members", "event_counts"];
+export const readOnlyTables: Table[] = [
+  "members",
+  "event_counts",
+  "assistant_usage",
+];
 /** Tables whose rows belong to a family or a person; never shared. */
 export const privateTables: Table[] = [
   "tasks",

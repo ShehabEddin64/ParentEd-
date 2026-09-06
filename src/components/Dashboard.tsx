@@ -1341,6 +1341,16 @@ function AdminDashboard({ data, profile, api }: Props) {
           </ul>
         </article>
         <article
+          className="widget md rise"
+          style={{ "--i": 6 } as React.CSSProperties}
+        >
+          <Head
+            title="Assistant : usage et coût"
+            icon={<Sparkles size={18} />}
+          />
+          <AssistantUsage data={data} today={today} />
+        </article>
+        <article
           className="widget lg rise"
           style={{ "--i": 5 } as React.CSSProperties}
         >
@@ -1381,5 +1391,58 @@ function Kpi({ n, label, link }: { n: number; label: string; link: string }) {
       <strong>{v}</strong>
       <small>{label}</small>
     </a>
+  );
+}
+
+function AssistantUsage({ data, today }: { data: Data; today: string }) {
+  const month = today.slice(0, 7);
+  const rows = data.assistant_usage;
+  const sum = (
+    list: typeof rows,
+    k: "questions" | "input_tokens" | "output_tokens",
+  ) => list.reduce((n, r) => n + r[k], 0);
+  const todayRows = rows.filter((r) => r.day === today);
+  const monthRows = rows.filter((r) => r.day.startsWith(month));
+  const cost = (list: typeof rows) =>
+    (
+      (sum(list, "input_tokens") * 5 + sum(list, "output_tokens") * 25) /
+      1_000_000
+    ).toFixed(2);
+  if (!rows.length)
+    return (
+      <div className="widget-empty">
+        <p>
+          Aucune question posée à l’assistant IA. Sans clé configurée, le bouton
+          « Besoin d’aide ? » utilise seulement la recherche intégrée, sans
+          coût.
+        </p>
+      </div>
+    );
+  return (
+    <>
+      <div className="kpis">
+        <div className="kpi">
+          <strong>{sum(todayRows, "questions")}</strong>
+          <small>
+            questions aujourd’hui · {todayRows.length} membre
+            {todayRows.length > 1 ? "s" : ""}
+          </small>
+        </div>
+        <div className="kpi">
+          <strong>{sum(monthRows, "questions")}</strong>
+          <small>questions ce mois-ci</small>
+        </div>
+        <div className="kpi">
+          <strong>{cost(monthRows)} $ US</strong>
+          <small>coût estimé du mois (tarif Opus 5)</small>
+        </div>
+      </div>
+      <small className="muted">
+        {Math.round(sum(monthRows, "input_tokens") / 1000)} k jetons entrés ·{" "}
+        {Math.round(sum(monthRows, "output_tokens") / 1000)} k jetons produits.
+        Les quotas par membre et global se règlent dans les secrets de la
+        fonction « assistant ».
+      </small>
+    </>
   );
 }

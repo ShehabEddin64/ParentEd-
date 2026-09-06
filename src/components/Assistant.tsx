@@ -200,6 +200,7 @@ export function Assistant({ data, profile, api }: Props) {
     api.mode === "supabase" ? null : false,
   );
   const [input, setInput] = useState("");
+  const [remaining, setRemaining] = useState<number | null>(null);
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
     end.current?.scrollIntoView({ block: "end" });
@@ -219,12 +220,14 @@ export function Assistant({ data, profile, api }: Props) {
     setTurns(next);
     setBusy(true);
     try {
-      const answer =
+      const result =
         ai === false
           ? null
           : await api.askAssistant(
               next.map(({ role, content }) => ({ role, content })),
             );
+      const answer = result?.answer ?? null;
+      if (result?.remaining !== undefined) setRemaining(result.remaining);
       if (answer === null) {
         setAi(false);
         setTurns([...next, localAnswer(q, data)]);
@@ -358,6 +361,13 @@ export function Assistant({ data, profile, api }: Props) {
               <Send size={16} />
             </button>
           </form>
+          {remaining !== null && (
+            <p className="assistant-quota">
+              {remaining > 0
+                ? `${remaining} question${remaining > 1 ? "s" : ""} restante${remaining > 1 ? "s" : ""} aujourd’hui`
+                : "Quota du jour atteint : la recherche intégrée reste disponible."}
+            </p>
+          )}
           <footer className="assistant-foot">
             <a href="#tutorat" onClick={() => setOpen(false)}>
               <GraduationCap size={14} /> Parler à un conseiller

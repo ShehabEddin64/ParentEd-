@@ -738,3 +738,32 @@ describe.sequential(
     });
   },
 );
+describe.sequential("Migration V6 : quotas de l’assistant", () => {
+  it("réserve une question par appel, refuse au-delà du quota et n’expose l’usage qu’au membre et à l’équipe", async () => {
+    await actor(a);
+    const first = (await rows("select public.assistant_allow(2, 100) as r"))[0]
+      .r as { allowed: boolean; used: number };
+    expect(first).toMatchObject({ allowed: true, used: 1 });
+    await db.exec("select public.assistant_record(120, 40)");
+    expect(
+      (await rows("select public.assistant_allow(2, 100) as r"))[0].r,
+    ).toMatchObject({ allowed: true, used: 2 });
+    expect(
+      (await rows("select public.assistant_allow(2, 100) as r"))[0].r,
+    ).toMatchObject({ allowed: false, reason: "user" });
+    await actor(b);
+    expect(
+      (await rows("select public.assistant_allow(5, 2) as r"))[0].r,
+    ).toMatchObject({ allowed: false, reason: "global" });
+    expect(await rows("select * from assistant_usage")).toHaveLength(1);
+    await expect(
+      db.exec("insert into assistant_usage(user_id) values ('" + b + "')"),
+    ).rejects.toThrow(/permission denied/);
+    await actor(admin);
+    const all = await rows(
+      "select * from assistant_usage order by questions desc",
+    );
+    expect(all.length).toBeGreaterThanOrEqual(2);
+    expect(all[0].input_tokens).toBe(120);
+  });
+});
