@@ -1,0 +1,20 @@
+{
+  "name": "parented-video",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render DemoParent out/ParentEd-demo-parent.mp4 --concurrency=4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.400",
+    "@remotion/media-utils": "4.0.400",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "remotion": "4.0.400"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.0",
+    "typescript": "5.9.2"
+  }
+}

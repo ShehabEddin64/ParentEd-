@@ -4,119 +4,119 @@
 
 <h1 align="center">ParentEd</h1>
 
-<p align="center"><strong>L'école à la maison, sans être seul.</strong><br>
-Plateforme d'accompagnement des parents-éducateurs du Québec : cours pour parents, ressources officielles expliquées, organisation familiale, communauté locale, rencontres, tutorat sur rendez-vous et examens d'entraînement, dans un seul espace.</p>
+<p align="center"><strong>Homeschooling, without going it alone.</strong><br>
+A member platform for Québec homeschooling parents: courses for parents, explained official resources, family organization, a local community, meetups, real-slot booking with tutors, and practice exams — all in one space.</p>
 
 <p align="center">
-  <a href="https://parented.parented.workers.dev">Site en ligne</a> ·
-  <a href="#-démonstration">Démonstration</a> ·
-  <a href="#-fonctionnalités">Fonctionnalités</a> ·
+  <a href="https://parented.parented.workers.dev">Live site</a> ·
+  <a href="#-demo">Demo</a> ·
+  <a href="#-features">Features</a> ·
   <a href="#-architecture">Architecture</a> ·
-  <a href="docs/demo-jury.md">Guide de démonstration pour le jury</a>
+  <a href="docs/demo-jury.md">Jury walkthrough (FR)</a>
 </p>
 
 <p align="center">
-  <img src="public/images/app-accueil.jpg" alt="Tableau de bord ParentEd" width="860">
+  <img src="public/images/app-accueil.jpg" alt="ParentEd dashboard" width="860">
 </p>
 
-> **English summary.** ParentEd is a French-language member platform for Québec homeschooling parents. It tackles the five problems families report most: isolation, uncertainty about the official steps, scattered resources, subjects that get stuck, and mental load. In one space it offers courses for parents, explained official resources, family organization (weekly plan, curriculum tracking, portfolio, weighted grades, calendar import), a local community (groups, member directory, interactive map, private messages), meetups, real-slot booking with tutors/advisors/coaches, practice exams, and an assistant. Built with React + TypeScript + Vite on Cloudflare Workers, Supabase (PostgreSQL, Auth, Storage, Edge Functions) with row-level security tested in real PostgreSQL. Live site, demo profiles and setup instructions below. The public landing page has an FR/EN switch.
+> **Note on language.** The product itself is in French (its users are Québec families); the public landing page has an FR/EN switch. This README and the code are in English; the project documents in `docs/` are in French.
 
 ---
 
-## Sommaire
+## Contents
 
-1. [Le problème](#-le-problème)
-2. [La solution](#-la-solution)
-3. [Fonctionnalités](#-fonctionnalités)
-4. [Captures d'écran](#-captures-décran)
-5. [Démonstration](#-démonstration)
+1. [The problem](#-the-problem)
+2. [The solution](#-the-solution)
+3. [Features](#-features)
+4. [Screenshots](#-screenshots)
+5. [Demo](#-demo)
 6. [Architecture](#-architecture)
-7. [Sécurité et vie privée](#-sécurité-et-vie-privée)
-8. [Modèle d'affaires](#-modèle-daffaires)
-9. [Installation et déploiement](#-installation-et-déploiement)
-10. [Tests et qualité](#-tests-et-qualité)
-11. [État du projet, limites et feuille de route](#-état-du-projet-limites-et-feuille-de-route)
+7. [Security and privacy](#-security-and-privacy)
+8. [Business model](#-business-model)
+9. [Setup and deployment](#-setup-and-deployment)
+10. [Tests and quality](#-tests-and-quality)
+11. [Status, limits and roadmap](#-status-limits-and-roadmap)
 12. [Documentation](#-documentation)
-13. [Crédits](#-crédits)
+13. [Credits](#-credits)
 
 ---
 
-## 🎯 Le problème
+## 🎯 The problem
 
-Enseigner à la maison est un beau choix. Le faire seul est épuisant. Les familles québécoises décrivent, encore et encore, les mêmes difficultés :
+Homeschooling is a beautiful choice. Doing it alone is exhausting. Québec families describe the same five difficulties, over and over:
 
-| Difficulté | Ce que vivent les parents |
+| Difficulty | What parents live |
 | --- | --- |
-| **« Et la socialisation ? »** | Trouver d'autres familles près de chez soi, des sorties régulières et des amis pour les enfants dépend de la chance et des groupes Facebook. |
-| **L'incertitude des démarches** | Avis annuel, projet d'apprentissage, bilans, épreuves ministérielles : le cadre est précis mais dispersé; on avance en craignant d'avoir manqué quelque chose. |
-| **Des ressources partout, et nulle part** | PDF gouvernementaux, blogues, forums : des heures de recherche sans savoir ce qui est fiable ni à jour. |
-| **Une matière qui bloque** | Il faut parfois un coup de main extérieur, sans renoncer à enseigner soi-même. |
-| **Le temps et la charge mentale** | Planifier, garder des traces, préparer les bilans, tout en vivant, sans outil pensé pour la famille. |
+| **"What about socialization?"** | Finding nearby families, regular outings and friends for the children depends on luck and scattered Facebook groups. |
+| **Uncertainty about the official steps** | Annual notice, learning project, progress reports, ministry exams: the framework is precise but scattered; you move forward fearing you missed something. |
+| **Resources everywhere, and nowhere** | Government PDFs, blogs, forums: hours of searching without knowing what is reliable or current. |
+| **A subject that gets stuck** | Sometimes outside help is needed, without giving up teaching yourself. |
+| **Time and mental load** | Planning, keeping records, preparing reports — all while living, with no tool designed for a family. |
 
-Le brief du challenge demandait aussi de répondre à des questions de modèle d'affaires : qui paie, combien, la viabilité après l'année 1, qui enseigne, combien d'enfants ensemble, un mardi type, l'adaptation à d'autres environnements. Les réponses sont dans [docs/demo-jury.md](docs/demo-jury.md) et résumées plus bas.
+The challenge brief also asked business questions: who pays, how much, viability after year 1, who teaches, how many children together, a typical Tuesday, and adaptation to other environments. Answers live in [docs/demo-jury.md](docs/demo-jury.md) and are summarized below.
 
-## 💡 La solution
+## 💡 The solution
 
-**Un seul espace** qui relie six volets, en laissant au parent la responsabilité éducative. ParentEd n'est ni une école, ni un service de garde, ni une garantie de conformité : les sources officielles du ministère font foi, et la plateforme les rend lisibles.
+**One space** connecting six areas, while the parent keeps full educational responsibility. ParentEd is not a school, not a childcare service, and not a compliance guarantee: the Ministry's official sources prevail, and the platform makes them readable.
 
-| Volet | Ce que ParentEd apporte |
+| Area | What ParentEd provides |
 | --- | --- |
-| Formation des parents | Cours originaux courts avec exemples, exercices, modèles réutilisables, notes personnelles et questions à l'équipe |
-| Ressources officielles expliquées | Liens gouvernementaux accompagnés de nos repères, datés, classés par étape, avec favoris |
-| Organisation familiale | Semaine par enfant, programme importé et réparti sur les jours d'école, portfolio privé, résultats pondérés, import de calendrier |
-| Communauté | Groupes régionaux et thématiques, annuaire des familles, carte interactive, messages privés, notifications |
-| Rencontres | Liste, calendrier et carte, filtres, récurrence, propositions des membres vérifiées par l'équipe, rappels |
-| Tutorat et rendez-vous | Tuteurs, conseillers aux démarches et coachs avec créneaux réels, réservation confirmée, compte rendu pédagogique, avis |
-| Examens d'entraînement | Examens chronométrés et corrigés, résultats suivis par enfant |
-| Assistant | Recherche dans les contenus de ParentEd; réponses en langage naturel avec Claude lorsque configuré, sous quotas |
+| Parent training | Original short courses with examples, exercises, reusable templates, personal notes and questions answered by the team |
+| Explained official resources | Government links with our guidance, dated, sorted by stage, with favourites |
+| Family organization | Week per child, curriculum imported and spread over school days, private portfolio, weighted grades, calendar import |
+| Community | Regional and thematic groups, member directory, interactive map, private messages, notifications |
+| Meetups | List, calendar and map, filters, recurrence, member proposals reviewed by the team, reminders |
+| Tutoring and appointments | Tutors, advisors and coaches with real time slots, instant confirmation, pedagogical report, reviews |
+| Practice exams | Timed, corrected exams with results tracked per child |
+| Assistant | Searches ParentEd's own content; natural-language answers via Claude when configured, under quotas |
 
-## ✨ Fonctionnalités
+## ✨ Features
 
-### Pour les parents
-- **Accueil en widgets** personnalisables : prochain rendez-vous avec compte à rebours, agenda de la semaine, météo de la ville, progrès des enfants (anneaux et courbes), programme par matière, cours en cours, prochaine rencontre, communauté, portfolio, raccourcis.
-- **Mes cours** : modules, exercices, modèles à copier ou télécharger, lien vidéo, note personnelle par leçon, questions avec réponses publiques de l'équipe, progression persistante.
-- **Ma semaine** : activités par enfant, plan hebdomadaire d'intentions, fiches enfants, livres et ressources, **programme** (import CSV ou texte, répartition automatique, % couvert par matière), **résultats** (notes pondérées, moyennes, courbes, examens intégrés), **portfolio privé** (notes datées et fichiers avec contexte), **import de calendrier .ics** (Google, Apple, Outlook), export JSON.
-- **Rendez-vous** : annuaire de tuteurs, conseillers et coachs vérifiés; calendrier de créneaux réels calculé à partir des disponibilités; réservation confirmée immédiatement (la base refuse un créneau pris ou hors disponibilité); lien de rencontre en ligne; compte rendu; avis; courriel de confirmation optionnel.
-- **Examens** : examens d'entraînement chronométrés, correction avec explications, résultat par enfant converti en note.
-- **Ressources** : recherche, étapes, favoris, source et date de vérification.
-- **Communauté** : discussions avec réactions et épinglage, groupes, **annuaire** avec recherche par ville et intérêt, **carte interactive** (familles par ville sur choix explicite, rencontres, tuteurs), **messages privés**, notifications en application.
-- **Rencontres** : liste, calendrier, carte, filtres (région, semaine ou week-end, gratuit, mes inscriptions), annonces à la une, récurrence, nombre de familles inscrites, propositions par les membres avec choix du lieu sur la carte, rappel iCalendar.
-- **Profil** : prénom, ville, âges des enfants sans prénom, intérêts, visibilité sur la carte.
-- **Comptes** : inscription, confirmation par courriel, réinitialisation du mot de passe, acceptation des conditions.
+### For parents
+- **Widget dashboard**, customizable: next appointment with countdown, weekly agenda, local weather, children's progress (rings and sparklines), curriculum by subject, current course, next meetup, community, portfolio, shortcuts.
+- **Courses**: modules, exercises, copy/downloadable templates, optional video link, a personal note per lesson, questions with public answers from the team, persistent progress.
+- **My week**: activities per child, weekly intentions, child profiles, books and resources, **curriculum** (CSV/text import, automatic scheduling, % covered per subject), **results** (weighted grades, averages, trend charts, exam results folded in), **private portfolio** (dated notes and files with context), **.ics calendar import** (Google, Apple, Outlook), JSON export.
+- **Appointments**: directory of verified tutors, advisors and coaches; a calendar of real slots computed from availability; booking confirmed instantly (the database refuses a taken or out-of-availability slot); meeting link; report; reviews; optional confirmation email.
+- **Exams**: timed practice exams, correction with explanations, result saved per child and turned into a grade.
+- **Resources**: search, stages, favourites, source and verification date.
+- **Community**: discussions with likes and pinning, groups, **directory** searchable by city and interest, **interactive map** (families by city, opt-in only; meetups; tutors), **private messages**, in-app notifications.
+- **Meetups**: list, calendar, map, filters (region, weekday/weekend, free, my registrations), featured announcements, recurrence, participant counts, member proposals with map location picking, iCalendar reminder.
+- **Profile**: first name, city, children's age ranges without names, interests, map visibility.
+- **Accounts**: sign-up, email confirmation, password reset, terms acceptance.
 
-### Pour l'équipe (administration)
-- Tableau de bord : à traiter (signalements, propositions, questions, profils), activité sur 8 semaines, indicateurs, familles par ville, usage et coût de l'assistant avec interrupteur.
-- Gestion des cours, leçons, ressources, groupes, rencontres (dont publication des propositions), tuteurs et disponibilités, examens et questions, séances, signalements, demandes de contact reçues depuis la page publique.
+### For the team (admin)
+- Dashboard: to-do list (reports, proposals, questions, profiles), 8-week activity chart, KPIs, families by city, assistant usage and cost with a kill switch.
+- Management of courses, lessons, resources, groups, meetups (including publishing member proposals), tutors and availability, exams and questions, sessions, moderation reports, and contact requests from the public page.
 
-### Page publique
-- Page d'accueil animée (héros en couches avec parallaxe), problème, solution, captures réelles de la plateforme, offre et tarif, FAQ, réservation d'appel et liste des familles fondatrices, mentions légales, bouton FR / EN.
+### Public landing page
+- Animated layered hero with parallax, problem, solution, real product screenshots, offer and pricing, FAQ, call booking and founding-family list, legal pages, FR/EN switch.
 
-## 🖼 Captures d'écran
+## 🖼 Screenshots
 
-| Ma semaine | Carte de la communauté |
+| My week | Community map |
 | --- | --- |
-| ![Ma semaine](public/images/app-semaine.jpg) | ![Carte](public/images/app-carte.jpg) |
+| ![My week](public/images/app-semaine.jpg) | ![Map](public/images/app-carte.jpg) |
 
-| Rendez-vous | Résultats |
+| Appointments | Results |
 | --- | --- |
-| ![Rendez-vous](public/images/app-rendezvous.jpg) | ![Résultats](public/images/app-resultats.jpg) |
+| ![Appointments](public/images/app-rendezvous.jpg) | ![Results](public/images/app-resultats.jpg) |
 
-## 🧪 Démonstration
+## 🧪 Demo
 
-**Site en ligne :** https://parented.parented.workers.dev
+**Live site:** https://parented.parented.workers.dev
 
-Sur la page publique, « Voir la démonstration » (ou `#connexion`) ouvre quatre profils fictifs, sans compte. Les données de démonstration restent dans le navigateur.
+On the landing page, "Voir la démonstration" (or `#connexion`) opens four fictional profiles, no account needed. Demo data stays in the browser.
 
-| Profil | Rôle | Ce qu'il montre |
+| Profile | Role | What it shows |
 | --- | --- | --- |
-| **Amélie** | Parent (Lina, 8 ans; Adam, 6 ans) | Semaine, programme, résultats, portfolio, séance de tutorat, communauté |
-| **Sami** | Parent d'une autre famille | Isolation des données entre familles |
-| **Nadia** | Tutrice | Espace tuteur : demandes, confirmation, comptes rendus |
-| **Camille** | Administration | Tableau de bord d'équipe, gestion des contenus, modération |
+| **Amélie** | Parent (Lina, 8; Adam, 6) | Week, curriculum, results, portfolio, tutoring session, community |
+| **Sami** | Parent of another family | Data isolation between families |
+| **Nadia** | Tutor | Tutor space: requests, confirmation, reports |
+| **Camille** | Admin | Team dashboard, content management, moderation |
 
-Parcours de démonstration détaillé et réponses au brief : [docs/demo-jury.md](docs/demo-jury.md).
+Full walkthrough and brief answers: [docs/demo-jury.md](docs/demo-jury.md).
 
-**En local :**
+**Locally:**
 
 ```sh
 npm ci
@@ -124,126 +124,126 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Ouvrir http://127.0.0.1:5173. Sans configuration Supabase, seule la démonstration est active.
+Open http://127.0.0.1:5173. Without Supabase configured, only the demo mode is active.
 
 ## 🏗 Architecture
 
 ```
 React 19 + TypeScript + Vite  ──►  Cloudflare Workers (Static Assets, SPA)
         │
-        ├── Supabase Auth (courriel / mot de passe, confirmation, réinitialisation)
-        ├── Supabase PostgreSQL (schéma versionné, RLS famille par famille, vues, déclencheurs)
-        ├── Supabase Storage (bucket privé « family-documents », 5 Mo, PDF/PNG/JPEG)
+        ├── Supabase Auth (email/password, confirmation, reset)
+        ├── Supabase PostgreSQL (versioned schema, per-family RLS, views, triggers)
+        ├── Supabase Storage (private bucket "family-documents", 5 MB, PDF/PNG/JPEG)
         └── Supabase Edge Functions
-              ├── booking-email  (courriel de confirmation via Resend, optionnel)
-              └── assistant      (Claude API avec quotas et journal d'usage, optionnel)
+              ├── booking-email  (confirmation email via Resend, optional)
+              └── assistant      (Claude API with quotas and usage log, optional)
 
-Services externes sans clé : OpenStreetMap (tuiles de carte), Open-Meteo (météo).
+Key-less external services: OpenStreetMap (map tiles), Open-Meteo (weather).
 ```
 
-**Structure du dépôt**
+**Repository structure**
 
-| Chemin | Contenu |
+| Path | Contents |
 | --- | --- |
-| `src/domain.ts` | Types et règles métier indépendantes du fournisseur (récurrence, créneaux, pondération, analyse .ics, iCalendar) |
-| `src/data/` | `gateway.ts` contrat de données, `supabase.ts` seuls appels Supabase, `demo.ts` simulateur local avec les mêmes règles d'accès, `seed.ts` données fictives |
-| `src/components/` | Dashboard, Courses, Family, Social (ressources, rencontres), Community, MapView, Tutoring, Exams, Profile, Assistant, Admin, Landing, Legal |
-| `src/legal.ts`, `src/landing-text.ts` | Mentions légales (projets), textes FR/EN de la page publique |
-| `supabase/migrations/` | Huit migrations versionnées; `supabase/parented-complet.sql` généré par `npm run sql:bundle` |
-| `supabase/functions/` | Fonctions Edge `booking-email` et `assistant` |
-| `tests/` | Tests métier (Vitest) et tests SQL exécutant les migrations réelles dans PostgreSQL (PGlite) |
-| `scripts/` | Génération du seed, comptes locaux, bundle SQL, captures d'écran (Playwright) |
-| `docs/` | Idée du service, décisions, modèle d'affaires, cadre juridique, déploiement, recette, jury |
+| `src/domain.ts` | Provider-independent types and business rules (recurrence, slots, weighting, .ics parsing, iCalendar output) |
+| `src/data/` | `gateway.ts` data contract, `supabase.ts` the only Supabase calls, `demo.ts` local simulator with the same access rules, `seed.ts` fictional data |
+| `src/components/` | Dashboard, Courses, Family, Social (resources, meetups), Community, MapView, Tutoring, Exams, Profile, Assistant, Admin, Landing, Legal |
+| `src/legal.ts`, `src/landing-text.ts` | Legal documents (drafts), FR/EN landing copy |
+| `supabase/migrations/` | Eight versioned migrations; `supabase/parented-complet.sql` generated by `npm run sql:bundle` |
+| `supabase/functions/` | Edge functions `booking-email` and `assistant` |
+| `tests/` | Business tests (Vitest) and SQL tests running the real migrations in PostgreSQL (PGlite) |
+| `scripts/` | Seed generation, local accounts, SQL bundle, screenshots (Playwright) |
+| `docs/` | Service idea, decisions, business model, legal framework, deployment, QA protocol, jury guide (FR) |
 
-**Modèle de données (principal) :** familles et profils (rôles parent / tuteur / admin), cours et leçons, progression, notes et questions de leçon, tâches, enfants, plans hebdomadaires, programmes et éléments, notes de portfolio, documents, résultats pondérés, ressources et favoris, discussions, réponses, réactions, groupes et adhésions, messages privés, notifications, rencontres et inscriptions, tuteurs, disponibilités, réservations, comptes rendus, avis, examens, questions et tentatives, usage de l'assistant, réglages, demandes de contact.
+**Data model (main tables):** families and profiles (parent / tutor / admin roles), courses and lessons, progress, lesson notes and questions, tasks, children, weekly plans, curricula and items, portfolio notes, documents, weighted grades, resources and favourites, posts, replies, likes, groups and memberships, private messages, notifications, events and registrations, tutors, availability, bookings, reports, reviews, exams, questions and attempts, assistant usage, settings, contact leads.
 
-## 🔒 Sécurité et vie privée
+## 🔒 Security and privacy
 
-- **Isolation famille par famille dans la base** : règles RLS PostgreSQL sur chaque table; l'administration voit les contenus publiés et la coordination, jamais l'espace familial (enfants, planning, portfolio, résultats).
-- **Rôles attribués en base** par un opérateur, jamais depuis le client (droits de colonnes : rôle et famille immuables).
-- **Fichiers privés** sans URL publique; identité des auteurs dérivée du compte par déclencheur.
-- **Réservations** validées par déclencheur : pas de double réservation, pas de créneau hors disponibilité.
-- **Assistant** : clé côté serveur, quotas par membre et global, cadence minimale, interrupteur d'équipe, refus des données sensibles, aucun outil, aucune donnée familiale transmise; conditions précisant qu'il n'engage pas ParentEd.
-- **Demandes publiques** limitées par courriel et par jour; champ piège contre les robots.
-- **Navigateur** : en-têtes de sécurité et CSP stricte (`public/_headers`).
-- **Mentions légales** dans l'application : confidentialité (Loi 25), témoins, conditions, paiement et remboursement; acceptation à l'inscription. Liste de contrôle : [docs/juridique.md](docs/juridique.md).
+- **Per-family isolation in the database**: PostgreSQL row-level security on every table; admins see published content and coordination data, never the family space (children, planning, portfolio, grades).
+- **Roles granted in the database** by an operator, never from the client (column grants keep role and family immutable).
+- **Private files** with no public URL; author identity derived from the account by trigger.
+- **Bookings** validated by trigger: no double booking, no slot outside announced availability.
+- **Assistant**: key stays server-side; per-member and global daily quotas, minimum pacing, team kill switch, refusal of sensitive input, no tools, no family data sent; terms state it does not bind ParentEd.
+- **Public requests** throttled per email and per day; honeypot field against bots.
+- **Browser**: security headers and a strict CSP (`public/_headers`).
+- **Legal pages** in the app: privacy (Québec Law 25), cookies, terms, payment and refunds; acceptance at sign-up. Checklist: [docs/juridique.md](docs/juridique.md).
 
-## 💼 Modèle d'affaires
+## 💼 Business model
 
-Hypothèses de travail, détaillées dans [docs/ParentEd-modele-operationnel-et-financier.md](docs/ParentEd-modele-operationnel-et-financier.md) et [docs/ParentEd-couts-techniques-et-equipe.md](docs/ParentEd-couts-techniques-et-equipe.md).
+Working assumptions, detailed in [docs/ParentEd-modele-operationnel-et-financier.md](docs/ParentEd-modele-operationnel-et-financier.md) and [docs/ParentEd-couts-techniques-et-equipe.md](docs/ParentEd-couts-techniques-et-equipe.md).
 
-- **Qui paie :** les familles, par abonnement mensuel sans engagement; tarif de lancement prévu de 49 $ par mois. Phase pilote gratuite pour 50 familles fondatrices. Aucun paiement dans l'application pour l'instant.
-- **Tutorat :** intervenants indépendants qui facturent directement les familles (45 à 65 $ l'heure); ParentEd vérifie, planifie et recueille les comptes rendus, sans commission au lancement.
-- **Coûts annuels récurrents :** environ 78 000 $ (coordination, pédagogie, technique, juridique, acquisition, réserve); seuil de viabilité autour de 139 familles payantes moyennes.
-- **Qui enseigne :** le parent; l'équipe pédagogique conçoit les cours pour parents; les tuteurs interviennent sur certaines matières, en séances individuelles.
-- **Adaptation :** socle commun réutilisable; contenus, démarches, langue et intervenants adaptés territoire par territoire.
+- **Who pays:** families, monthly, no commitment; planned launch price CAD 49/month. Free pilot for 50 founding families. No payment in the app today.
+- **Tutoring:** independent professionals bill families directly (CAD 45–65/hour); ParentEd verifies, schedules and collects reports, with no commission at launch.
+- **Recurring annual cost:** about CAD 78,000 (coordination, pedagogy, technical, legal, acquisition, reserve); break-even around 139 average paying families.
+- **Who teaches:** the parent; the pedagogical team writes the parent courses; tutors help on specific subjects, one-on-one.
+- **Adaptation:** the core is reusable; content, official steps, language and staff must be adapted territory by territory.
 
-## 🚀 Installation et déploiement
+## 🚀 Setup and deployment
 
-Guide complet, pas à pas : [docs/deploiement.md](docs/deploiement.md).
+Full step-by-step guide (FR): [docs/deploiement.md](docs/deploiement.md).
 
-1. Créer un projet Supabase et exécuter `supabase/parented-complet.sql` dans SQL Editor (migrations et contenus fictifs; section seed supprimable).
-2. Configurer Authentication (Site URL, Redirect URLs, mot de passe de 12 caractères).
-3. Renseigner `.env.production` avec l'URL du projet et la clé publishable (publique par conception).
-4. `npx wrangler login` puis `npm run deploy`.
-5. Nommer les rôles admin et tuteur en base. Optionnel : fonctions `booking-email` (Resend) et `assistant` (Claude) avec leurs secrets.
+1. Create a Supabase project and run `supabase/parented-complet.sql` in the SQL Editor (migrations plus fictional content; the seed section can be removed).
+2. Configure Authentication (Site URL, Redirect URLs, 12-character minimum password).
+3. Fill `.env.production` with the project URL and the publishable key (public by design; security relies on Auth and RLS).
+4. `npx wrangler login`, then `npm run deploy`.
+5. Grant admin and tutor roles in the database. Optional: deploy the `booking-email` (Resend) and `assistant` (Claude) functions with their secrets.
 
-Commandes utiles :
+Useful commands:
 
 ```sh
-npm run dev              # serveur de développement
-npm run build            # compilation TypeScript + Vite
-npm test                 # tests métier et SQL
+npm run dev              # development server
+npm run build            # TypeScript + Vite build
+npm test                 # business and SQL tests
 npm run check:cloudflare # build + wrangler deploy --dry-run
-npm run sql:bundle       # régénère seed.sql et parented-complet.sql
-node scripts/capture-screens.mjs   # captures d'écran de la démo (serveur lancé)
+npm run sql:bundle       # regenerate seed.sql and parented-complet.sql
+node scripts/capture-screens.mjs   # refresh product screenshots (dev server running)
 ```
 
-## ✅ Tests et qualité
+## ✅ Tests and quality
 
-- **45 tests** : 15 tests métier et simulateur (persistance, isolation, tutorat, récurrence, iCalendar, pondération, import de calendrier, messages, notifications, profil) et **30 tests PostgreSQL** qui exécutent les huit migrations réelles dans PGlite et vérifient les règles d'accès (familles, fichiers, réservations, comptes rendus, favoris, groupes, questions, propositions, annuaire, messages, avis, examens, programme, quotas, demandes de contact).
-- TypeScript strict, Prettier, build Vite et dry-run Cloudflare.
-- Parcours vérifiés dans le navigateur sur ordinateur et mobile; animations désactivées avec `prefers-reduced-motion`.
-- Limite : les tests SQL représentent Auth et Storage par des schémas minimaux; la recette sur Supabase réel est décrite dans [docs/recette.md](docs/recette.md).
+- **45 tests**: 15 business/simulator tests (persistence, isolation, tutoring, recurrence, iCalendar, weighting, calendar import, messages, notifications, profile) and **30 PostgreSQL tests** that run the eight real migrations in PGlite and check access rules (families, files, bookings, reports, favourites, groups, questions, proposals, directory, messages, reviews, exams, curriculum, quotas, leads).
+- Strict TypeScript, Prettier, Vite build and Cloudflare dry-run.
+- Flows verified in the browser on desktop and mobile; animations disabled under `prefers-reduced-motion`.
+- Limit: SQL tests represent Auth and Storage with minimal schemas; the connected QA protocol is in [docs/recette.md](docs/recette.md).
 
-## 🗺 État du projet, limites et feuille de route
+## 🗺 Status, limits and roadmap
 
-**Opérationnel :** tout ce qui est décrit ci-dessus, en démonstration locale et sur le site publié relié à Supabase.
+**Working:** everything described above, in local demo mode and on the deployed site connected to Supabase.
 
-**Limites assumées de cette phase :**
-- aucun paiement dans l'application; contenus pédagogiques et fiches d'intervenants de démonstration à remplacer;
-- courriels de confirmation et assistant IA dépendent de clés optionnelles (Resend, Anthropic);
-- chargement plafonné à 1 000 lignes par table, sans pagination; une famille par compte;
-- espace membre et mentions légales en français seulement (page publique FR/EN);
-- mentions légales à compléter et à faire relire avant lancement public.
+**Accepted limits for this phase:**
+- no payment in the app; demo pedagogical content and provider profiles to be replaced;
+- confirmation emails and the AI assistant depend on optional keys (Resend, Anthropic);
+- loading capped at 1,000 rows per table, no pagination; one family per account;
+- member area and legal pages in French only (landing page is FR/EN);
+- legal documents contain placeholders and need a lawyer's review before public launch.
 
-**Feuille de route :** pilote avec 50 familles fondatrices, contenus pédagogiques validés, intervenants réels, SMTP dédié, suppression de compte en libre-service, paiement par abonnement, pagination et temps réel, puis adaptation à d'autres territoires.
+**Roadmap:** pilot with 50 founding families, validated pedagogical content, real providers, dedicated SMTP, self-serve account deletion, subscription payments, pagination and realtime, then adaptation to other territories.
 
-Historique détaillé : [docs/progress.md](docs/progress.md).
+Detailed history: [docs/progress.md](docs/progress.md).
 
 ## 📚 Documentation
 
-| Document | Contenu |
+| Document | Contents |
 | --- | --- |
-| [docs/idee-du-service.md](docs/idee-du-service.md) | Mission et périmètre |
-| [docs/demo-jury.md](docs/demo-jury.md) | Parcours de démonstration et réponses au brief |
-| [docs/ParentEd-modele-operationnel-et-financier.md](docs/ParentEd-modele-operationnel-et-financier.md) | Modèle opérationnel et financier |
-| [docs/ParentEd-couts-techniques-et-equipe.md](docs/ParentEd-couts-techniques-et-equipe.md) | Coûts techniques, équipe, tuteurs |
-| [docs/ParentEd-decisions-et-concessions.md](docs/ParentEd-decisions-et-concessions.md) | Décisions d'architecture |
-| [docs/references-et-cadre-du-service.md](docs/references-et-cadre-du-service.md) | Références gouvernementales et cadre |
-| [docs/juridique.md](docs/juridique.md) | Liste de contrôle juridique (Loi 25, LPC) |
-| [docs/deploiement.md](docs/deploiement.md) | Déploiement Supabase et Cloudflare |
-| [docs/recette.md](docs/recette.md) | Protocole de recette |
-| [docs/sauvegarde-et-restauration.md](docs/sauvegarde-et-restauration.md) | Sauvegardes |
-| [docs/direction-marque-et-produit.md](docs/direction-marque-et-produit.md) | Marque et produit |
-| [docs/credits-photos.md](docs/credits-photos.md) | Crédits des photographies |
+| [docs/idee-du-service.md](docs/idee-du-service.md) | Mission and scope |
+| [docs/demo-jury.md](docs/demo-jury.md) | Demo walkthrough and answers to the brief |
+| [docs/ParentEd-modele-operationnel-et-financier.md](docs/ParentEd-modele-operationnel-et-financier.md) | Operational and financial model |
+| [docs/ParentEd-couts-techniques-et-equipe.md](docs/ParentEd-couts-techniques-et-equipe.md) | Technical costs, team, tutors |
+| [docs/ParentEd-decisions-et-concessions.md](docs/ParentEd-decisions-et-concessions.md) | Architecture decisions |
+| [docs/references-et-cadre-du-service.md](docs/references-et-cadre-du-service.md) | Government references and legal framework |
+| [docs/juridique.md](docs/juridique.md) | Legal checklist (Law 25, consumer protection) |
+| [docs/deploiement.md](docs/deploiement.md) | Supabase and Cloudflare deployment |
+| [docs/recette.md](docs/recette.md) | QA protocol |
+| [docs/sauvegarde-et-restauration.md](docs/sauvegarde-et-restauration.md) | Backup and restore |
+| [docs/direction-marque-et-produit.md](docs/direction-marque-et-produit.md) | Brand and product direction |
+| [docs/credits-photos.md](docs/credits-photos.md) | Photo credits |
 
-## 🙏 Crédits
+## 🙏 Credits
 
-- Logotype et identité ParentEd : fournis par le porteur du projet (`brand/`).
-- Photographies : licence Unsplash via Lorem Picsum, auteurs listés dans [docs/credits-photos.md](docs/credits-photos.md).
-- Cartes : © contributeurs OpenStreetMap. Météo : Open-Meteo.
-- Icônes : Lucide. Carte : Leaflet.
-- Les profils, familles, tuteurs, rencontres et contenus de démonstration sont fictifs et identifiés comme tels.
+- ParentEd logotype and identity: provided by the project owner (`brand/`).
+- Photographs: Unsplash licence via Lorem Picsum; authors listed in [docs/credits-photos.md](docs/credits-photos.md).
+- Maps: © OpenStreetMap contributors. Weather: Open-Meteo.
+- Icons: Lucide. Maps: Leaflet.
+- All demo profiles, families, tutors, meetups and content are fictional and labelled as such.
 
-Licence du code : à définir par le porteur du projet avant diffusion publique.
+Code licence: to be chosen by the project owner before public release.
