@@ -1,0 +1,74 @@
+[
+  {
+    "id": "intro",
+    "text": "Enseigner à la maison, ça commence par beaucoup de questions. Voici comment ParentEd accompagne un parent, une semaine à la fois.",
+    "audio": "audio/intro.wav",
+    "duration": 7.264771
+  },
+  {
+    "id": "accueil",
+    "text": "Lundi matin. En ouvrant son espace, Amélie voit d'abord ce qui l'attend : le prochain rendez-vous de Lina, la semaine qui commence, et où en sont ses deux enfants.",
+    "audio": "audio/accueil.wav",
+    "duration": 9.375479
+  },
+  {
+    "id": "cours",
+    "text": "Avant d'enseigner, il faut comprendre. Les cours de ParentEd sont écrits pour le parent, pas pour l'enfant.",
+    "audio": "audio/cours.wav",
+    "duration": 5.93025
+  },
+  {
+    "id": "lecon",
+    "text": "Trouver son rythme en famille. Trois leçons courtes, un exemple, un exercice, et une petite action à essayer aujourd'hui. La progression se garde : Amélie reprend là où elle s'est arrêtée.",
+    "audio": "audio/lecon.wav",
+    "duration": 11.561229
+  },
+  {
+    "id": "semaine",
+    "text": "Ma semaine rassemble tout au même endroit. Un plan hebdomadaire écrit, une grille par enfant, et chaque activité rattachée à une matière.",
+    "audio": "audio/semaine.wav",
+    "duration": 7.811396
+  },
+  {
+    "id": "ajout",
+    "text": "Amélie ajoute une pause au parc, le lundi. Elle est enregistrée tout de suite. La semaine se construit, elle ne se refait pas chaque dimanche soir.",
+    "audio": "audio/ajout.wav",
+    "duration": 8.83275
+  },
+  {
+    "id": "portfolio",
+    "text": "Les traces restent privées. Les notes, les photos et les fichiers de la famille ne sont jamais publiés dans la communauté.",
+    "audio": "audio/portfolio.wav",
+    "duration": 6.275979
+  },
+  {
+    "id": "communaute",
+    "text": "Et la socialisation ? Des groupes par région et par thème, des discussions entre parents, et une carte des familles proches.",
+    "audio": "audio/communaute.wav",
+    "duration": 7.021875
+  },
+  {
+    "id": "carte",
+    "text": "Les familles apparaissent au centre de leur ville, jamais à leur adresse.",
+    "audio": "audio/carte.wav",
+    "duration": 3.826271
+  },
+  {
+    "id": "rencontres",
+    "text": "Les familles proposent leurs propres rencontres. Le parc du mardi, une matinée au jardin botanique. Amélie s'inscrit en un clic.",
+    "audio": "audio/rencontres.wav",
+    "duration": 7.634333
+  },
+  {
+    "id": "tutorat",
+    "text": "Quand une matière bloque, elle réserve une heure avec une tutrice. Nadia confirme le créneau, puis dépose un compte rendu après la séance. Le parent reste l'enseignant.",
+    "audio": "audio/tutorat.wav",
+    "duration": 9.448208
+  },
+  {
+    "id": "fin",
+    "text": "Se former. S'organiser. Se rencontrer. Se faire aider. ParentEd : enseigner à la maison, ensemble.",
+    "audio": "audio/fin.wav",
+    "duration": 7.148396
+  }
+]
