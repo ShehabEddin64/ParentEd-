@@ -41,7 +41,7 @@ Plateforme d'accompagnement des parents-éducateurs du Québec : cours pour pare
 
 ---
 
-## 🎯 Le problème
+##  Le problème
 
 Enseigner à la maison est un beau choix. Le faire seul est épuisant. Les familles québécoises décrivent, encore et encore, les mêmes difficultés :
 
@@ -55,7 +55,7 @@ Enseigner à la maison est un beau choix. Le faire seul est épuisant. Les famil
 
 Le brief du challenge demandait aussi de répondre à des questions de modèle d'affaires : qui paie, combien, la viabilité après l'année 1, qui enseigne, combien d'enfants ensemble, un mardi type, l'adaptation à d'autres environnements. Les réponses sont dans [docs/demo-jury.md](docs/demo-jury.md) et résumées plus bas.
 
-## 💡 La solution
+##  La solution
 
 **Un seul espace** qui relie six volets, en laissant au parent la responsabilité éducative. ParentEd n'est ni une école, ni un service de garde, ni une garantie de conformité : les sources officielles du ministère font foi, et la plateforme les rend lisibles.
 
@@ -70,7 +70,7 @@ Le brief du challenge demandait aussi de répondre à des questions de modèle d
 | Examens d'entraînement | Examens chronométrés et corrigés, résultats suivis par enfant |
 | Assistant | Recherche dans les contenus de ParentEd; réponses en langage naturel avec Claude lorsque configuré, sous quotas |
 
-## ✨ Fonctionnalités
+##  Fonctionnalités
 
 ### Pour les parents
 - **Accueil en widgets** personnalisables : prochain rendez-vous avec compte à rebours, agenda de la semaine, météo de la ville, progrès des enfants (anneaux et courbes), programme par matière, cours en cours, prochaine rencontre, communauté, portfolio, raccourcis.
@@ -91,7 +91,7 @@ Le brief du challenge demandait aussi de répondre à des questions de modèle d
 ### Page publique
 - Page d'accueil animée (héros en couches avec parallaxe), problème, solution, captures réelles de la plateforme, offre et tarif, FAQ, réservation d'appel et liste des familles fondatrices, mentions légales, bouton FR / EN.
 
-## 🖼 Captures d'écran
+##  Captures d'écran
 
 | Ma semaine | Carte de la communauté |
 | --- | --- |
@@ -101,7 +101,7 @@ Le brief du challenge demandait aussi de répondre à des questions de modèle d
 | --- | --- |
 | ![Rendez-vous](public/images/app-rendezvous.jpg) | ![Résultats](public/images/app-resultats.jpg) |
 
-## 🧪 Démonstration
+##  Démonstration
 
 **Site en ligne :** https://parented.parented.workers.dev
 
@@ -126,7 +126,7 @@ npm run dev
 
 Ouvrir http://127.0.0.1:5173. Sans configuration Supabase, seule la démonstration est active.
 
-## 🏗 Architecture
+##  Architecture
 
 ```
 React 19 + TypeScript + Vite  ──►  Cloudflare Workers (Static Assets, SPA)
@@ -199,14 +199,14 @@ npm run sql:bundle       # régénère seed.sql et parented-complet.sql
 node scripts/capture-screens.mjs   # captures d'écran de la démo (serveur lancé)
 ```
 
-## ✅ Tests et qualité
+##  Tests et qualité
 
 - **45 tests** : 15 tests métier et simulateur (persistance, isolation, tutorat, récurrence, iCalendar, pondération, import de calendrier, messages, notifications, profil) et **30 tests PostgreSQL** qui exécutent les huit migrations réelles dans PGlite et vérifient les règles d'accès (familles, fichiers, réservations, comptes rendus, favoris, groupes, questions, propositions, annuaire, messages, avis, examens, programme, quotas, demandes de contact).
 - TypeScript strict, Prettier, build Vite et dry-run Cloudflare.
 - Parcours vérifiés dans le navigateur sur ordinateur et mobile; animations désactivées avec `prefers-reduced-motion`.
 - Limite : les tests SQL représentent Auth et Storage par des schémas minimaux; la recette sur Supabase réel est décrite dans [docs/recette.md](docs/recette.md).
 
-## 🗺 État du projet, limites et feuille de route
+##  État du projet, limites et feuille de route
 
 **Opérationnel :** tout ce qui est décrit ci-dessus, en démonstration locale et sur le site publié relié à Supabase.
 
@@ -221,7 +221,7 @@ node scripts/capture-screens.mjs   # captures d'écran de la démo (serveur lanc
 
 Historique détaillé : [docs/progress.md](docs/progress.md).
 
-## 📚 Documentation
+##  Documentation
 
 | Document | Contenu |
 | --- | --- |
@@ -238,7 +238,7 @@ Historique détaillé : [docs/progress.md](docs/progress.md).
 | [docs/direction-marque-et-produit.md](docs/direction-marque-et-produit.md) | Marque et produit |
 | [docs/credits-photos.md](docs/credits-photos.md) | Crédits des photographies |
 
-## 🙏 Crédits
+##  Crédits
 
 - Logotype et identité ParentEd : fournis par le porteur du projet (`brand/`).
 - Photographies : licence Unsplash via Lorem Picsum, auteurs listés dans [docs/credits-photos.md](docs/credits-photos.md).
