@@ -739,15 +739,25 @@ describe.sequential(
   },
 );
 describe.sequential("Migration V6 : quotas de l’assistant", () => {
+  const unpace = async (id: string) => {
+    await db.exec("reset role");
+    await db.query(
+      "update assistant_usage set last_at = null where user_id = $1",
+      [id],
+    );
+    await actor(id);
+  };
   it("réserve une question par appel, refuse au-delà du quota et n’expose l’usage qu’au membre et à l’équipe", async () => {
     await actor(a);
     const first = (await rows("select public.assistant_allow(2, 100) as r"))[0]
       .r as { allowed: boolean; used: number };
     expect(first).toMatchObject({ allowed: true, used: 1 });
     await db.exec("select public.assistant_record(120, 40)");
+    await unpace(a);
     expect(
       (await rows("select public.assistant_allow(2, 100) as r"))[0].r,
     ).toMatchObject({ allowed: true, used: 2 });
+    await unpace(a);
     expect(
       (await rows("select public.assistant_allow(2, 100) as r"))[0].r,
     ).toMatchObject({ allowed: false, reason: "user" });
