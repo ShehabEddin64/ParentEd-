@@ -41,7 +41,7 @@ A member platform for Québec homeschooling parents: courses for parents, explai
 
 ---
 
-## 🎯 The problem
+## The problem
 
 Homeschooling is a beautiful choice. Doing it alone is exhausting. Québec families describe the same five difficulties, over and over:
 
@@ -55,7 +55,7 @@ Homeschooling is a beautiful choice. Doing it alone is exhausting. Québec famil
 
 The challenge brief also asked business questions: who pays, how much, viability after year 1, who teaches, how many children together, a typical Tuesday, and adaptation to other environments. Answers live in [docs/demo-jury.md](docs/demo-jury.md) and are summarized below.
 
-## 💡 The solution
+## The solution
 
 **One space** connecting six areas, while the parent keeps full educational responsibility. ParentEd is not a school, not a childcare service, and not a compliance guarantee: the Ministry's official sources prevail, and the platform makes them readable.
 
@@ -70,7 +70,7 @@ The challenge brief also asked business questions: who pays, how much, viability
 | Practice exams | Timed, corrected exams with results tracked per child |
 | Assistant | Searches ParentEd's own content; natural-language answers via Claude when configured, under quotas |
 
-## ✨ Features
+## Features
 
 ### For parents
 - **Widget dashboard**, customizable: next appointment with countdown, weekly agenda, local weather, children's progress (rings and sparklines), curriculum by subject, current course, next meetup, community, portfolio, shortcuts.
@@ -91,7 +91,7 @@ The challenge brief also asked business questions: who pays, how much, viability
 ### Public landing page
 - Animated layered hero with parallax, problem, solution, real product screenshots, offer and pricing, FAQ, call booking and founding-family list, legal pages, FR/EN switch.
 
-## 🖼 Screenshots
+## Screenshots
 
 | My week | Community map |
 | --- | --- |
@@ -101,7 +101,7 @@ The challenge brief also asked business questions: who pays, how much, viability
 | --- | --- |
 | ![Appointments](public/images/app-rendezvous.jpg) | ![Results](public/images/app-resultats.jpg) |
 
-## 🧪 Demo
+## Demo
 
 **Live site:** https://parented.parented.workers.dev
 
@@ -126,7 +126,7 @@ npm run dev
 
 Open http://127.0.0.1:5173. Without Supabase configured, only the demo mode is active.
 
-## 🏗 Architecture
+## Architecture
 
 ```
 React 19 + TypeScript + Vite  ──►  Cloudflare Workers (Static Assets, SPA)
@@ -157,7 +157,7 @@ Key-less external services: OpenStreetMap (map tiles), Open-Meteo (weather).
 
 **Data model (main tables):** families and profiles (parent / tutor / admin roles), courses and lessons, progress, lesson notes and questions, tasks, children, weekly plans, curricula and items, portfolio notes, documents, weighted grades, resources and favourites, posts, replies, likes, groups and memberships, private messages, notifications, events and registrations, tutors, availability, bookings, reports, reviews, exams, questions and attempts, assistant usage, settings, contact leads.
 
-## 🔒 Security and privacy
+## Security and privacy
 
 - **Per-family isolation in the database**: PostgreSQL row-level security on every table; admins see published content and coordination data, never the family space (children, planning, portfolio, grades).
 - **Roles granted in the database** by an operator, never from the client (column grants keep role and family immutable).
@@ -168,7 +168,7 @@ Key-less external services: OpenStreetMap (map tiles), Open-Meteo (weather).
 - **Browser**: security headers and a strict CSP (`public/_headers`).
 - **Legal pages** in the app: privacy (Québec Law 25), cookies, terms, payment and refunds; acceptance at sign-up. Checklist: [docs/juridique.md](docs/juridique.md).
 
-## 💼 Business model
+## Business model
 
 Working assumptions, detailed in [docs/ParentEd-modele-operationnel-et-financier.md](docs/ParentEd-modele-operationnel-et-financier.md) and [docs/ParentEd-couts-techniques-et-equipe.md](docs/ParentEd-couts-techniques-et-equipe.md).
 
@@ -178,7 +178,7 @@ Working assumptions, detailed in [docs/ParentEd-modele-operationnel-et-financier
 - **Who teaches:** the parent; the pedagogical team writes the parent courses; tutors help on specific subjects, one-on-one.
 - **Adaptation:** the core is reusable; content, official steps, language and staff must be adapted territory by territory.
 
-## 🚀 Setup and deployment
+## Setup and deployment
 
 Full step-by-step guide (FR): [docs/deploiement.md](docs/deploiement.md).
 
@@ -199,14 +199,14 @@ npm run sql:bundle       # regenerate seed.sql and parented-complet.sql
 node scripts/capture-screens.mjs   # refresh product screenshots (dev server running)
 ```
 
-## ✅ Tests and quality
+## Tests and quality
 
 - **45 tests**: 15 business/simulator tests (persistence, isolation, tutoring, recurrence, iCalendar, weighting, calendar import, messages, notifications, profile) and **30 PostgreSQL tests** that run the eight real migrations in PGlite and check access rules (families, files, bookings, reports, favourites, groups, questions, proposals, directory, messages, reviews, exams, curriculum, quotas, leads).
 - Strict TypeScript, Prettier, Vite build and Cloudflare dry-run.
 - Flows verified in the browser on desktop and mobile; animations disabled under `prefers-reduced-motion`.
 - Limit: SQL tests represent Auth and Storage with minimal schemas; the connected QA protocol is in [docs/recette.md](docs/recette.md).
 
-## 🗺 Status, limits and roadmap
+## Status, limits and roadmap
 
 **Working:** everything described above, in local demo mode and on the deployed site connected to Supabase.
 
@@ -221,7 +221,7 @@ node scripts/capture-screens.mjs   # refresh product screenshots (dev server run
 
 Detailed history: [docs/progress.md](docs/progress.md).
 
-## 📚 Documentation
+## Documentation
 
 | Document | Contents |
 | --- | --- |
@@ -238,7 +238,7 @@ Detailed history: [docs/progress.md](docs/progress.md).
 | [docs/direction-marque-et-produit.md](docs/direction-marque-et-produit.md) | Brand and product direction |
 | [docs/credits-photos.md](docs/credits-photos.md) | Photo credits |
 
-## 🙏 Credits
+## Credits
 
 - ParentEd logotype and identity: provided by the project owner (`brand/`).
 - Photographs: Unsplash licence via Lorem Picsum; authors listed in [docs/credits-photos.md](docs/credits-photos.md).
