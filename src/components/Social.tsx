@@ -672,6 +672,14 @@ export function Events({ data, profile, api, run, busy }: Props) {
             <CalendarDays size={17} />
             Calendrier
           </button>
+          <button
+            className={view === "carte" ? "active" : ""}
+
+            onClick={() => setView("carte")}
+          >
+            <MapIcon size={17} />
+            Carte
+          </button>
         </div>
         <select
           aria-label="Région"
