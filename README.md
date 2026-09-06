@@ -157,7 +157,7 @@ Services externes sans clé : OpenStreetMap (tuiles de carte), Open-Meteo (mét�
 
 **Modèle de données (principal) :** familles et profils (rôles parent / tuteur / admin), cours et leçons, progression, notes et questions de leçon, tâches, enfants, plans hebdomadaires, programmes et éléments, notes de portfolio, documents, résultats pondérés, ressources et favoris, discussions, réponses, réactions, groupes et adhésions, messages privés, notifications, rencontres et inscriptions, tuteurs, disponibilités, réservations, comptes rendus, avis, examens, questions et tentatives, usage de l'assistant, réglages, demandes de contact.
 
-## 🔒 Sécurité et vie privée
+##  Sécurité et vie privée
 
 - **Isolation famille par famille dans la base** : règles RLS PostgreSQL sur chaque table; l'administration voit les contenus publiés et la coordination, jamais l'espace familial (enfants, planning, portfolio, résultats).
 - **Rôles attribués en base** par un opérateur, jamais depuis le client (droits de colonnes : rôle et famille immuables).
@@ -168,7 +168,7 @@ Services externes sans clé : OpenStreetMap (tuiles de carte), Open-Meteo (mét�
 - **Navigateur** : en-têtes de sécurité et CSP stricte (`public/_headers`).
 - **Mentions légales** dans l'application : confidentialité (Loi 25), témoins, conditions, paiement et remboursement; acceptation à l'inscription. Liste de contrôle : [docs/juridique.md](docs/juridique.md).
 
-## 💼 Modèle d'affaires
+##  Modèle d'affaires
 
 Hypothèses de travail, détaillées dans [docs/ParentEd-modele-operationnel-et-financier.md](docs/ParentEd-modele-operationnel-et-financier.md) et [docs/ParentEd-couts-techniques-et-equipe.md](docs/ParentEd-couts-techniques-et-equipe.md).
 
@@ -178,7 +178,7 @@ Hypothèses de travail, détaillées dans [docs/ParentEd-modele-operationnel-et-
 - **Qui enseigne :** le parent; l'équipe pédagogique conçoit les cours pour parents; les tuteurs interviennent sur certaines matières, en séances individuelles.
 - **Adaptation :** socle commun réutilisable; contenus, démarches, langue et intervenants adaptés territoire par territoire.
 
-## 🚀 Installation et déploiement
+##  Installation et déploiement
 
 Guide complet, pas à pas : [docs/deploiement.md](docs/deploiement.md).
 
