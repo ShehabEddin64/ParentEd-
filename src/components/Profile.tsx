@@ -33,7 +33,7 @@ export function Profile({ data, profile, api, run, busy }: Props) {
   return (
     <>
       <PageTitle
-        eyebrow="MON PROFIL"
+        eyebrow="Mon profil"
         title="Ce que les autres parents voient de vous."
         description="Un prénom, une ville, quelques intérêts : de quoi trouver des familles qui vous ressemblent. Aucune adresse, aucun nom d’enfant."
       />

@@ -6,13 +6,13 @@ import {
   XCircle,
   Clock,
   ClipboardList,
-  Library,
   RotateCcw,
   Trophy,
 } from "lucide-react";
 import type { Props } from "../App";
 import { percent, safeUrl, type Exam } from "../domain";
 import { Empty, External, PageTitle } from "./ui";
+import { photoFor } from "../images";
 export function Exams(props: Props) {
   const { data, profile } = props;
   const [selected, setSelected] = useState(
@@ -25,9 +25,6 @@ export function Exams(props: Props) {
   }, []);
   const exam = data.exams.find((e) => e.id === selected);
   if (exam) return <Runner {...props} exam={exam} />;
-  const [subject, setSubject] = [props.data.exams[0]?.subject, () => {}];
-  void subject;
-  void setSubject;
   const exams = data.exams
     .filter((e) => e.published)
     .sort((a, b) => a.position - b.position);
@@ -42,7 +39,7 @@ export function Exams(props: Props) {
   return (
     <>
       <PageTitle
-        eyebrow="S’ENTRAÎNER SANS PRESSION"
+        eyebrow="S’entraîner sans pression"
         title="Préparation aux examens."
         description="Des examens d’entraînement corrigés, inspirés du format des épreuves, et des ressources pour préparer les bilans. Ce ne sont pas des évaluations officielles."
       />
@@ -68,36 +65,46 @@ export function Exams(props: Props) {
             : null;
           return (
             <a href={"#examens/" + e.id} className="exam-card" key={e.id}>
-              <div className="pill-row">
-                <span className="pill">{e.subject}</span>
-                {e.level && <span className="pill">{e.level}</span>}
+              <div className="card-photo">
+                <img
+                  className="photo"
+                  src={photoFor("exam", e.subject, e.id)}
+                  alt=""
+                  loading="lazy"
+                />
               </div>
-              <h2>{e.title}</h2>
-              <p>{e.description}</p>
-              <div className="lesson-meta">
-                <ClipboardList size={16} />
-                {count} questions <span>·</span>
-                <Clock size={16} />
-                {e.minutes} min
+              <div className="exam-card-content">
+                <div className="pill-row">
+                  <span className="pill">{e.subject}</span>
+                  {e.level && <span className="pill">{e.level}</span>}
+                </div>
+                <h2>{e.title}</h2>
+                <p>{e.description}</p>
+                <div className="lesson-meta">
+                  <ClipboardList size={16} />
+                  {count} questions <span>·</span>
+                  <Clock size={16} />
+                  {e.minutes} min
+                </div>
+                {best !== null ? (
+                  <div className="progress-label">
+                    <span>
+                      Meilleur résultat · {mine.length} essai
+                      {mine.length > 1 ? "s" : ""}
+                    </span>
+                    <strong>{best} %</strong>
+                  </div>
+                ) : (
+                  <div className="progress-label">
+                    <span>Pas encore essayé</span>
+                  </div>
+                )}
+                <progress value={best ?? 0} max={100} />
+                <span className="text-link">
+                  {best !== null ? "Refaire l’examen" : "Commencer"}{" "}
+                  <ArrowRight size={16} />
+                </span>
               </div>
-              {best !== null ? (
-                <div className="progress-label">
-                  <span>
-                    Meilleur résultat · {mine.length} essai
-                    {mine.length > 1 ? "s" : ""}
-                  </span>
-                  <strong>{best} %</strong>
-                </div>
-              ) : (
-                <div className="progress-label">
-                  <span>Pas encore essayé</span>
-                </div>
-              )}
-              <progress value={best ?? 0} max={100} />
-              <span className="text-link">
-                {best !== null ? "Refaire l’examen" : "Commencer"}{" "}
-                <ArrowRight size={16} />
-              </span>
             </a>
           );
         })}
@@ -114,18 +121,25 @@ export function Exams(props: Props) {
       <div className="resource-grid">
         {prep.map((r) => (
           <article className="resource-card" key={r.id}>
-            <div className="resource-icon">
-              <Library size={22} />
+            <div className="card-photo">
+              <img
+                className="photo"
+                src={photoFor("resource", r.category + " " + r.title, r.id)}
+                alt=""
+                loading="lazy"
+              />
             </div>
-            <span className="pill">{r.category}</span>
-            <h2>{r.title}</h2>
-            <p>{r.description}</p>
-            <small>
-              {r.source} · relevé le {r.checked_at}
-            </small>
-            {safeUrl(r.url) && (
-              <External url={r.url}>Consulter la source officielle</External>
-            )}
+            <div className="resource-body">
+              <span className="pill">{r.category}</span>
+              <h2>{r.title}</h2>
+              <p>{r.description}</p>
+              <small>
+                {r.source} · relevé le {r.checked_at}
+              </small>
+              {safeUrl(r.url) && (
+                <External url={r.url}>Consulter la source officielle</External>
+              )}
+            </div>
           </article>
         ))}
       </div>
@@ -270,7 +284,7 @@ function Runner({
           <ArrowLeft size={17} /> Tous les examens
         </a>
         <PageTitle
-          eyebrow="RÉSULTAT"
+          eyebrow="Résultat"
           title={`${result.score} / ${questions.length} · ${pct} %`}
           description={
             pct >= 80

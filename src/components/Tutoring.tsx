@@ -33,6 +33,7 @@ import {
   type Slot,
 } from "../domain";
 import { Empty, External, PageTitle } from "./ui";
+import { pages } from "../images";
 export function Tutoring(props: Props) {
   const { data, profile } = props;
   const mine = data.tutors.find((t) => t.profile_id === profile.id);
@@ -284,10 +285,11 @@ function FamilySpace({ data, profile, api, run, busy }: Props) {
   return (
     <>
       <PageTitle
-        eyebrow="UN COUP DE MAIN, QUAND C’EST UTILE"
+        eyebrow="Un coup de main, quand c’est utile"
         title="Rendez-vous et tutorat."
         description="Réservez un créneau réel avec un tuteur, un conseiller aux démarches ou un coach parental. Le parent reste l’enseignant principal."
       />
+      <img className="section-photo" src={pages.rdv} alt="" />
       <div className="privacy-banner">
         <Info size={23} />
         <p>
@@ -342,7 +344,7 @@ function FamilySpace({ data, profile, api, run, busy }: Props) {
             </select>
           </label>
           <div className="span-2">
-            <span className="eyebrow">CHOISIR UN CRÉNEAU</span>
+            <span className="eyebrow">Choisir un créneau</span>
             <SlotPicker
               tutor={booking}
               data={data}
@@ -406,18 +408,16 @@ function FamilySpace({ data, profile, api, run, busy }: Props) {
                 <div className="booking-head">
                   <span className="pill">{bookingStatusLabels[b.status]}</span>
                   {tutor && (
-                    <span className="pill">
-                      {tutorKindLabels[tutor.kind].toUpperCase()}
-                    </span>
+                    <span className="pill">{tutorKindLabels[tutor.kind]}</span>
                   )}
                   {b.weekly && (
                     <span className="pill">
-                      <Repeat size={11} /> HEBDOMADAIRE
+                      <Repeat size={11} /> Hebdomadaire
                     </span>
                   )}
                   {emailed[b.id] && (
                     <span className="pill featured">
-                      <Mail size={11} /> COURRIEL ENVOYÉ
+                      <Mail size={11} /> Courriel envoyé
                     </span>
                   )}
                 </div>
@@ -444,7 +444,7 @@ function FamilySpace({ data, profile, api, run, busy }: Props) {
                 {b.note && <p className="small">{b.note}</p>}
                 {reports.map((r) => (
                   <div className="answer" key={r.id}>
-                    <span className="pill">COMPTE RENDU PÉDAGOGIQUE</span>
+                    <span className="pill">Compte rendu pédagogique</span>
                     <p className="preserve-lines">{r.body}</p>
                     <small className="muted">
                       {new Date(r.created_at).toLocaleDateString("fr-CA")} ·
@@ -700,7 +700,7 @@ function TutorSpace({ data, api, run, busy, tutor }: Props & { tutor: Tutor }) {
   return (
     <>
       <PageTitle
-        eyebrow={`ESPACE ${tutorKindLabels[tutor.kind].toUpperCase()}`}
+        eyebrow={`ESPACE ${tutorKindLabels[tutor.kind]}`}
         title={`Vos rendez-vous, ${tutor.display_name}.`}
         description="Les familles réservent directement vos créneaux libres. Tenez vos rendez-vous, clôturez-les et transmettez un compte rendu."
         action={
@@ -853,7 +853,7 @@ function TutorSpace({ data, api, run, busy, tutor }: Props & { tutor: Tutor }) {
                 <span className="pill">{bookingStatusLabels[b.status]}</span>
                 {b.weekly && (
                   <span className="pill">
-                    <Repeat size={11} /> HEBDOMADAIRE
+                    <Repeat size={11} /> Hebdomadaire
                   </span>
                 )}
               </div>
@@ -872,7 +872,7 @@ function TutorSpace({ data, api, run, busy, tutor }: Props & { tutor: Tutor }) {
               {b.note && <p className="small">Note du parent : {b.note}</p>}
               {reports.map((r) => (
                 <div className="answer" key={r.id}>
-                  <span className="pill">COMPTE RENDU</span>
+                  <span className="pill">Compte rendu</span>
                   <p className="preserve-lines">{r.body}</p>
                 </div>
               ))}

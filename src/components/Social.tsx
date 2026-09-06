@@ -18,6 +18,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { MapView, type MapMarker } from "./MapView";
+import { photoFor } from "../images";
 import type { Props } from "../App";
 import {
   formatDate,
@@ -66,7 +67,7 @@ export function Resources({ data, profile, api, run, busy }: Props) {
   return (
     <>
       <PageTitle
-        eyebrow="DES SOURCES POUR VOUS REPÉRER"
+        eyebrow="Des sources pour vous repérer"
         title="Les bonnes ressources, au bon endroit."
         description="Des liens officiels classés par étape, accompagnés de nos repères pour savoir par où commencer. Gardez vos favoris à portée de main."
       />
@@ -104,8 +105,13 @@ export function Resources({ data, profile, api, run, busy }: Props) {
         {rows.map((r) => (
           <article className="resource-card" key={r.id}>
             <div className="resource-top">
-              <div className="resource-icon">
-                <ArrowRight size={23} />
+              <div className="card-photo">
+                <img
+                  className="photo"
+                  src={photoFor("resource", r.category + " " + r.title, r.id)}
+                  alt=""
+                  loading="lazy"
+                />
               </div>
               <button
                 className={`icon-button star ${favorite(r.id) ? "on" : ""}`}
@@ -124,17 +130,19 @@ export function Resources({ data, profile, api, run, busy }: Props) {
                 />
               </button>
             </div>
-            <span className="pill">{r.category}</span>
-            <h2>{r.title}</h2>
-            <p>{r.description}</p>
-            <small>
-              {r.source}
-              <br />
-              Référence relevée le {r.checked_at}
-            </small>
-            {safeUrl(r.url) && (
-              <External url={r.url}>Consulter la source officielle</External>
-            )}
+            <div className="resource-body">
+              <span className="pill">{r.category}</span>
+              <h2>{r.title}</h2>
+              <p>{r.description}</p>
+              <small>
+                {r.source}
+                <br />
+                Référence relevée le {r.checked_at}
+              </small>
+              {safeUrl(r.url) && (
+                <External url={r.url}>Consulter la source officielle</External>
+              )}
+            </div>
           </article>
         ))}
       </div>
@@ -280,16 +288,15 @@ export function Events({ data, profile, api, run, busy }: Props) {
     return (
       <>
         <div className="pill-row">
-          <span className="pill">RENCONTRE PARENT-ENFANT</span>
+          <span className="pill">Rencontre parent-enfant</span>
           {e.featured && (
             <span className="pill featured">
-              <Megaphone size={11} /> À LA UNE
+              <Megaphone size={11} /> À la une
             </span>
           )}
           {e.recurrence !== "none" && (
             <span className="pill">
-              <Repeat size={11} />{" "}
-              {recurrenceLabels[e.recurrence].toUpperCase()}
+              <Repeat size={11} /> {recurrenceLabels[e.recurrence]}
             </span>
           )}
         </div>
@@ -387,7 +394,7 @@ export function Events({ data, profile, api, run, busy }: Props) {
   return (
     <>
       <PageTitle
-        eyebrow="SE RENCONTRER, DÉCOUVRIR, PARTAGER"
+        eyebrow="Se rencontrer, découvrir, partager"
         title="Des moments à vivre ensemble."
         description="Des rencontres entre familles, en semaine ou le week-end, pour prolonger les découvertes hors de la maison. Proposez les vôtres."
         action={
@@ -550,7 +557,7 @@ export function Events({ data, profile, api, run, busy }: Props) {
           </label>
           <div className="span-2">
             <span className="eyebrow">
-              LIEU SUR LA CARTE · cliquez pour placer le repère
+              Lieu sur la carte ·cliquez pour placer le repère
               {pick ? " (placé)" : ""}
             </span>
             <MapView
@@ -644,7 +651,7 @@ export function Events({ data, profile, api, run, busy }: Props) {
                 }}
               >
                 <span className="pill featured">
-                  <Megaphone size={11} /> À LA UNE
+                  <Megaphone size={11} /> À la une
                 </span>
                 <h3>{e.title}</h3>
                 <p>
@@ -746,12 +753,21 @@ export function Events({ data, profile, api, run, busy }: Props) {
         <div className="events-grid">
           {upcoming.slice(0, 30).map((o) => (
             <article className="event-card" key={o.key}>
-              <div className="event-banner">
-                <span>
-                  {formatDate(o.date, { month: "short" })}
+              <div className="card-photo">
+                <img
+                  className="photo"
+                  src={photoFor(
+                    "event",
+                    o.event.title + " " + o.event.description,
+                    o.event.id,
+                  )}
+                  alt=""
+                  loading="lazy"
+                />
+                <div className="date-chip">
+                  <span>{formatDate(o.date, { month: "short" })}</span>
                   <strong>{Number(o.date.slice(-2))}</strong>
-                </span>
-                <div aria-hidden="true">✳</div>
+                </div>
               </div>
               <div className="event-content">{details(o)}</div>
             </article>

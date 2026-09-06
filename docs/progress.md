@@ -37,6 +37,13 @@ Mis à jour le 6 septembre 2026 (troisième itération).
 - **Résultats** : `grades`; saisie manuelle, notes issues des examens, moyenne générale et par matière, courbe d’évolution, tableau détaillé.
 - Migration `202609060004_parented_v4.sql`, seed enrichi (Julie conseillère, Omar coach, programme et notes de Lina), 39 tests.
 
+### Cinquième itération : design apaisé, photographies, tableaux de bord
+- Langage visuel : étiquettes en boîte remplacées par des libellés en texte, accents dorés retirés, coins et boutons arrondis, ombres légères, onglets en pastilles sombres, libellés en casse de phrase.
+- Photographies réelles (licence Unsplash via Lorem Picsum, créditées) pour la connexion, l’accueil, les cours, les rencontres, les ressources, les examens et les en-têtes de section; catalogue par mot-clé dans `src/images.ts`.
+- Accueil parent : une seule action principale, progrès par enfant (programme couvert, moyenne et tendance, prochaine notion ou séance, traces), prochaine rencontre et dernières discussions.
+- Accueil administration : statistiques (signalements, propositions, questions, profils à publier, familles, profils complétés, adhésions, discussions, inscriptions, rendez-vous et examens du mois), familles par ville, prochaines rencontres.
+- Contenus : 3 examens supplémentaires (16 questions), 4 rencontres de plus (robotique, randonnée, club de lecture mensuel, journée sciences), membre Youssef (père de deux garçons).
+
 ## Vérifications exécutées
 
 - `npm test` : **39 tests réussis**, dont **26 tests PostgreSQL/PGlite** exécutant les quatre migrations (tutorat, propositions, favoris, groupes, questions, familles, profils, annuaire, messages, notifications, j’aime, avis).

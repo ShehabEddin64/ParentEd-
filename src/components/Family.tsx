@@ -82,7 +82,7 @@ export function Family(props: Props) {
   return (
     <>
       <PageTitle
-        eyebrow="VOTRE QUOTIDIEN, À VOTRE FAÇON"
+        eyebrow="Votre quotidien, à votre façon"
         title="De la place pour apprendre."
         description="Une semaine souple par enfant, vos livres et ressources, et un portfolio privé pour garder des traces."
         action={
@@ -440,7 +440,7 @@ function WeekPlan({
   return (
     <section className="week-plan">
       <div className="week-plan-head">
-        <span className="eyebrow">PLAN HEBDOMADAIRE</span>
+        <span className="eyebrow">Plan hebdomadaire</span>
         <button className="text-button" onClick={() => setOpen(!open)}>
           <Pencil size={15} />
           {open
@@ -1507,7 +1507,7 @@ function Program({
         <>
           <section className="stats-grid">
             <div className="stat-tile hero">
-              <span className="eyebrow">PROGRAMME COUVERT</span>
+              <span className="eyebrow">Programme couvert</span>
               <strong>{total ? Math.round((done / total) * 100) : 0} %</strong>
               <small>
                 {done} sur {total} élément{total > 1 ? "s" : ""}
@@ -1519,7 +1519,7 @@ function Program({
               const d = rows.filter((i) => i.done).length;
               return (
                 <div className="stat-tile" key={sub}>
-                  <span className="eyebrow">{sub.toUpperCase()}</span>
+                  <span className="eyebrow">{sub}</span>
                   <strong>{Math.round((d / rows.length) * 100)} %</strong>
                   <small>
                     {d} / {rows.length} · prochain :{" "}
@@ -1923,9 +1923,7 @@ function Results({
         <>
           <section className="stats-grid">
             <div className="stat-tile hero">
-              <span className="eyebrow">
-                MOYENNE GÉNÉRALE · {child.toUpperCase()}
-              </span>
+              <span className="eyebrow">Moyenne générale ·{child}</span>
               <strong>{stats.overall} %</strong>
               <small>
                 {grades.length} résultat{grades.length > 1 ? "s" : ""} ·{" "}
@@ -1935,7 +1933,7 @@ function Results({
             </div>
             {stats.subjects.map((s2) => (
               <div className="stat-tile" key={s2.subject}>
-                <span className="eyebrow">{s2.subject.toUpperCase()}</span>
+                <span className="eyebrow">{s2.subject}</span>
                 <strong>{s2.average} %</strong>
                 <small>
                   {s2.count} résultat{s2.count > 1 ? "s" : ""} · dernier :{" "}
@@ -1974,7 +1972,7 @@ function Results({
                     <td>
                       {g.title}
                       {g.source === "examen" && (
-                        <span className="pill"> ENTRAÎNEMENT</span>
+                        <span className="pill">Entraînement</span>
                       )}
                     </td>
                     <td>

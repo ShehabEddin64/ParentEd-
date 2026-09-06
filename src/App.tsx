@@ -17,7 +17,6 @@ import {
   Leaf,
   ArrowUpRight,
   GraduationCap,
-  Megaphone,
   Star,
   Bell,
   MessageSquare,
@@ -37,7 +36,7 @@ import {
 import type { Gateway } from "./data/gateway";
 import { configured, SupabaseGateway } from "./data/supabase";
 import { DemoGateway } from "./data/demo";
-import { Art, Empty, PageTitle } from "./components/ui";
+import { Empty, PageTitle } from "./components/ui";
 import { Courses } from "./components/Courses";
 import { Family } from "./components/Family";
 import { Events, Resources } from "./components/Social";
@@ -45,6 +44,7 @@ import { Community } from "./components/Community";
 import { Tutoring } from "./components/Tutoring";
 import { Profile as ProfilePage } from "./components/Profile";
 import { Exams } from "./components/Exams";
+import { pages, photoFor } from "./images";
 import { Admin } from "./components/Admin";
 export type Run = (
   work: () => Promise<void>,
@@ -154,6 +154,7 @@ export default function App() {
   }, [api]);
   useEffect(() => {
     const onHash = () => {
+      window.scrollTo({ top: 0 });
       setPage(currentPage());
       setMenu(false);
       setError("");
@@ -680,7 +681,7 @@ function Login({
       <section className="login-story">
         <img src="/parented-logo.png" alt="parentEd" />
         <div>
-          <span className="eyebrow">POUR LES PARENTS QUI FONT APPRENDRE</span>
+          <span className="eyebrow">Pour les parents qui font apprendre</span>
           <h1>
             Un peu de repères.
             <br />
@@ -690,7 +691,7 @@ function Login({
             Se former, organiser la semaine, trouver des ressources fiables, un
             soutien complémentaire et une communauté active. En un seul espace.
           </p>
-          <Art large />
+          <img className="story-photo" src={pages.login} alt="" />
           <span className="story-caption">
             <Leaf size={18} /> Grandir ensemble, une découverte à la fois.
           </span>
@@ -702,7 +703,7 @@ function Login({
       </section>
       <section className="login-panel">
         <div className="login-form">
-          <span className="eyebrow">VOTRE ESPACE PARENT</span>
+          <span className="eyebrow">Votre espace parent</span>
           <h2>
             {mode === "signup"
               ? "Créer votre espace familial."
@@ -824,7 +825,7 @@ function Login({
           )}
           {demoEnabled && (
             <div className="demo-choice">
-              <span className="pill">DÉMONSTRATION</span>
+              <span className="pill">Démonstration</span>
               <h3>Découvrez une semaine en famille</h3>
               <p>
                 Profils et contenus fictifs. Vos essais restent dans ce
@@ -864,7 +865,9 @@ function Login({
     </div>
   );
 }
-function Dashboard({ data, profile, api }: Props) {
+function Dashboard(props: Props) {
+  const { data, profile, api } = props;
+  if (profile.role === "admin") return <AdminDashboard {...props} />;
   const today = api.mode === "demo" ? "2026-09-07" : localDate();
   const courses = data.courses
     .filter((c) => c.published)
@@ -881,84 +884,93 @@ function Dashboard({ data, profile, api }: Props) {
     .filter((l) => l.course_id === course?.id)
     .sort((a, b) => a.position - b.position);
   const done = completion(lessons, data.progress);
-  const task = data.tasks
-    .filter((t) => !t.done && t.date >= today)
-    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
   const published = data.events.filter((e) => e.published);
   const next = occurrences(published, today, shiftDate(today, 120));
   const featured =
-    next.find((o) => o.event.featured) ??
     next.find((o) =>
       data.registrations.some((r) => r.event_id === o.event.id),
     ) ??
+    next.find((o) => o.event.featured) ??
     next[0];
   const myTutor = data.tutors.find((t) => t.profile_id === profile.id);
   const session = data.bookings
     .filter((b) =>
       myTutor ? b.tutor_id === myTutor.id : b.family_id === profile.family_id,
     )
-    .filter((b) => ["demandée", "confirmée"].includes(b.status))
+    .filter(
+      (b) => ["demandée", "confirmée"].includes(b.status) && b.date >= today,
+    )
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
   const pendingForTutor = myTutor
     ? data.bookings.filter(
         (b) => b.tutor_id === myTutor.id && b.status === "demandée",
       ).length
     : 0;
-  const groups = data.group_members.filter(
-    (m) => m.user_id === profile.id,
+  const unreadMessages = data.messages.filter(
+    (m) => m.recipient_id === profile.id && !m.read_at,
   ).length;
+  const nearby = data.members.filter(
+    (m) =>
+      m.city && m.city === profile.city && m.id !== profile.id && m.show_on_map,
+  ).length;
+  const children = data.children.length
+    ? data.children.map((c) => c.name)
+    : [
+        ...new Set([
+          ...data.tasks.map((t) => t.child),
+          ...data.grades.map((g) => g.child),
+        ]),
+      ].filter((n) => n && n !== "Toute la famille");
+  const firstName = profile.display_name.split(" ")[0];
   return (
     <>
       <PageTitle
-        eyebrow="CHAQUE PETIT PAS COMPTE"
-        title={`Bonjour ${profile.display_name}.`}
+        eyebrow={formatDate(today, {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        })}
+        title={`Bonjour ${firstName}.`}
         description={
           myTutor
-            ? "Vos séances, vos comptes rendus et la vie de la communauté."
-            : "Un espace pour apprendre, s’organiser et avancer ensemble."
+            ? "Vos rendez-vous, vos comptes rendus et la vie de la communauté."
+            : children.length
+              ? `Voici où en ${children.length > 1 ? "sont" : "est"} ${children.join(" et ")} cette semaine.`
+              : "Un espace pour apprendre, s’organiser et avancer ensemble."
         }
       />
       <section className="dashboard-grid">
         <div className="hero-card">
+          <img className="hero-photo" src={pages.hero} alt="" />
           <div className="hero-content">
             <span className="hero-kicker">
               <span />
-              VOTRE FIL CONDUCTEUR
+              {myTutor ? "Cette semaine" : "Votre semaine"}
             </span>
             <h2>
-              À chacun son rythme.
-              <br />À vous de trouver le vôtre.
+              {session
+                ? `${session.subject} ${formatDate(session.date, { weekday: "long" })} à ${session.time}`
+                : "À chacun son rythme."}
             </h2>
             <p>
-              Quelques repères pour une semaine plus sereine,
-              <br className="desktop-only" /> et de la place pour l’imprévu.
+              {session
+                ? myTutor
+                  ? `${session.child} · ${bookingStatus(session.status)}`
+                  : `${session.child} avec ${data.tutors.find((t) => t.id === session.tutor_id)?.display_name ?? "votre tuteur"} · ${bookingStatus(session.status)}`
+                : "Quelques repères pour une semaine plus sereine, et de la place pour l’imprévu."}
             </p>
             <a
               className="button white"
               href={myTutor ? "#tutorat" : "#semaine"}
             >
-              {myTutor ? "Voir mes séances" : "Organiser ma semaine"}
+              {myTutor ? "Voir mes rendez-vous" : "Ouvrir ma semaine"}
               <ArrowRight size={18} />
             </a>
           </div>
-          <Art large />
         </div>
         <div className="week-glance">
-          <span className="eyebrow">VOTRE PETITE BOUSSOLE</span>
-          <h3>Cette semaine, on avance.</h3>
-          <div className="glance-row">
-            <span className="glance-icon">
-              <BookOpen size={21} />
-            </span>
-            <div>
-              <strong>
-                {data.progress.length} leçon
-                {data.progress.length > 1 ? "s" : ""} terminée
-                {data.progress.length > 1 ? "s" : ""}
-              </strong>
-              <small>Chaque idée fait son chemin</small>
-            </div>
-          </div>
+          <span className="eyebrow">En un coup d’œil</span>
+          <h3>{myTutor ? "Vos rendez-vous" : "Où vous en êtes"}</h3>
           {myTutor ? (
             <div className="glance-row">
               <span className="glance-icon green">
@@ -969,205 +981,489 @@ function Dashboard({ data, profile, api }: Props) {
                   {pendingForTutor} demande{pendingForTutor > 1 ? "s" : ""} à
                   confirmer
                 </strong>
-                <small>Dans votre espace tuteur</small>
+                <small>Dans votre espace</small>
               </div>
             </div>
           ) : (
             <div className="glance-row">
-              <span className="glance-icon green">
-                <CalendarDays size={21} />
-              </span>
-              <div>
-                <strong>
-                  {data.tasks.filter((t) => !t.done).length} activité
-                  {data.tasks.filter((t) => !t.done).length > 1 ? "s" : ""} à
-                  vivre
-                </strong>
-                <small>Dans votre planning familial</small>
-              </div>
-            </div>
-          )}
-          {!myTutor && data.curriculum_items.length > 0 && (
-            <div className="glance-row">
               <span className="glance-icon">
-                <ClipboardList size={21} />
+                <BookOpen size={21} />
               </span>
               <div>
                 <strong>
-                  {Math.round(
-                    (data.curriculum_items.filter((i) => i.done).length /
-                      data.curriculum_items.length) *
-                      100,
-                  )}{" "}
-                  % du programme couvert
+                  {data.progress.length} leçon
+                  {data.progress.length > 1 ? "s" : ""} terminée
+                  {data.progress.length > 1 ? "s" : ""}
                 </strong>
                 <small>
-                  {data.curriculum_items.filter((i) => i.done).length} sur{" "}
-                  {data.curriculum_items.length} éléments
+                  {course
+                    ? `${done} % de « ${course.title} »`
+                    : "Vos cours pour parents"}
                 </small>
               </div>
             </div>
           )}
           <div className="glance-row">
             <span className="glance-icon sand">
-              <Users size={21} />
+              <MessageSquare size={21} />
             </span>
             <div>
               <strong>
-                {groups} groupe{groups > 1 ? "s" : ""} rejoint
-                {groups > 1 ? "s" : ""}
+                {unreadMessages
+                  ? `${unreadMessages} message${unreadMessages > 1 ? "s" : ""} non lu${unreadMessages > 1 ? "s" : ""}`
+                  : "Aucun message en attente"}
               </strong>
               <small>
-                {data.favorites.length} ressource
-                {data.favorites.length > 1 ? "s" : ""} en favoris
+                {data.notifications.filter((n) => !n.read_at).length}{" "}
+                notification(s) non lue(s)
               </small>
             </div>
           </div>
-          <a href={myTutor ? "#tutorat" : "#semaine"} className="text-link">
-            {myTutor ? "Voir mes séances" : "Voir mon organisation"}{" "}
+          <div className="glance-row">
+            <span className="glance-icon green">
+              <MapPin size={21} />
+            </span>
+            <div>
+              <strong>
+                {profile.city
+                  ? `${nearby} famille${nearby > 1 ? "s" : ""} près de ${profile.city}`
+                  : "Ville non renseignée"}
+              </strong>
+              <small>
+                {profile.city
+                  ? "Sur la carte de la communauté"
+                  : "Complétez votre profil pour trouver des familles"}
+              </small>
+            </div>
+          </div>
+          <a
+            href={profile.city ? "#communaute/carte" : "#profil"}
+            className="text-link"
+          >
+            {profile.city ? "Voir la carte" : "Compléter mon profil"}{" "}
             <ArrowUpRight size={16} />
           </a>
         </div>
       </section>
-      <section className="dashboard-lower">
-        <div>
+      {!myTutor && children.length > 0 && (
+        <>
           <div className="section-heading">
-            <h2>Un moment pour apprendre</h2>
-            <a href="#cours">
-              Tous les cours <ArrowRight size={16} />
+            <h2>
+              Les progrès de {children.length > 1 ? "vos enfants" : children[0]}
+            </h2>
+            <a href="#semaine">
+              Ma semaine <ArrowRight size={16} />
             </a>
           </div>
-          {course ? (
+          <section className="children-progress">
+            {children.map((name) => (
+              <ChildProgress key={name} name={name} data={data} today={today} />
+            ))}
+          </section>
+        </>
+      )}
+      <section className="dashboard-lower">
+        <div>
+          {course && (
             <a href={"#cours/" + course.id} className="continue-card">
-              <Art />
+              <div className="card-photo">
+                <img
+                  className="photo"
+                  src={photoFor(
+                    "course",
+                    course.category + " " + course.title,
+                    course.id,
+                  )}
+                  alt=""
+                />
+              </div>
               <div>
-                <span className="pill">{done ? "EN COURS" : "POUR VOUS"}</span>
+                <span className="pill">
+                  {done ? "Cours en cours" : "Cours suggéré"}
+                </span>
                 <h3>{course.title}</h3>
                 <p>
                   {lessons.length} leçons ·{" "}
-                  {lessons.reduce((n, l) => n + l.minutes, 0)} minutes · À votre
-                  rythme
+                  {lessons.reduce((n, l) => n + l.minutes, 0)} minutes
                 </p>
                 <div className="progress-label">
                   <span>
-                    {done
-                      ? "Votre progression"
-                      : "Prêt à faire le premier pas ?"}
+                    {done ? "Votre progression" : "Pas encore commencé"}
                   </span>
                   <strong>{done} %</strong>
                 </div>
                 <progress value={done} max={100} />
-                <span className="text-link">
-                  {done === 100
-                    ? "Revoir le cours"
-                    : done
-                      ? "Continuer mon cours"
-                      : "Commencer le cours"}
-                  <ArrowRight size={17} />
-                </span>
               </div>
             </a>
-          ) : (
-            <Empty>Vos premiers cours arrivent bientôt.</Empty>
           )}
           <div className="section-heading">
-            <h2>La vie de la communauté</h2>
+            <h2>Dans la communauté</h2>
             <a href="#communaute">
-              Rejoindre les échanges <ArrowRight size={16} />
+              Voir tout <ArrowRight size={16} />
             </a>
           </div>
-          {data.posts.slice(0, 1).map((p) => (
-            <a
-              href={"#communaute/" + p.id}
-              className="community-preview"
-              key={p.id}
-            >
-              <span className="avatar sand">{p.author[0]}</span>
-              <div>
-                <small>
-                  {p.author} <span>· {p.category}</span>
-                </small>
-                <h3>{p.title}</h3>
-                <p>{p.body.slice(0, 115)}…</p>
-              </div>
-              <ChevronRight size={20} />
-            </a>
-          ))}
+          {[...data.posts]
+            .sort((a, b) => b.created_at.localeCompare(a.created_at))
+            .slice(0, 2)
+            .map((p) => (
+              <a
+                href={"#communaute/" + p.id}
+                className="community-preview"
+                key={p.id}
+              >
+                <span className="avatar sand">{p.author[0]}</span>
+                <div>
+                  <small>
+                    {p.author} <span>· {timeAgo(p.created_at)}</span>
+                  </small>
+                  <h3>{p.title}</h3>
+                  <p>{p.body.slice(0, 115)}…</p>
+                </div>
+                <ChevronRight size={20} />
+              </a>
+            ))}
         </div>
         <div className="upcoming">
           <div className="section-heading">
-            <h2>À l’horizon</h2>
+            <h2>Prochaine rencontre</h2>
             <CalendarRange size={19} />
           </div>
-          {session && (
-            <a href="#tutorat" className="horizon-item">
-              <span className="pill">
-                {myTutor ? "SÉANCE" : "TUTORAT"} ·{" "}
-                {session.status.toUpperCase()}
-              </span>
-              <h3>
-                {session.subject}
-                {myTutor
-                  ? ` · ${session.child}`
-                  : ` avec ${data.tutors.find((t) => t.id === session.tutor_id)?.display_name ?? "un tuteur"}`}
-              </h3>
-              <p>
-                {formatDate(session.date)} · {session.time}
-                {session.weekly && " · chaque semaine"}
-              </p>
-              {!myTutor && <small>{session.child}</small>}
-            </a>
-          )}
-          {task && (
-            <a href="#semaine" className="horizon-item">
-              <span className="pill">EN FAMILLE</span>
-              <h3>{task.title}</h3>
-              <p>
-                {formatDate(task.date)} · {task.time}
-              </p>
-              <small>{task.child}</small>
-            </a>
-          )}
           {featured ? (
             <a href="#evenements" className="event-preview">
-              <div className="event-art">
-                <Leaf size={58} strokeWidth={1} />
-                <span>LES RENCONTRES PARENTED</span>
+              <div className="card-photo">
+                <img
+                  className="photo"
+                  src={photoFor(
+                    "event",
+                    featured.event.title + " " + featured.event.description,
+                    featured.event.id,
+                  )}
+                  alt=""
+                />
               </div>
               <div>
-                <span
-                  className={`pill ${featured.event.featured ? "featured" : ""}`}
-                >
-                  {featured.event.featured ? (
-                    <>
-                      <Megaphone size={11} /> À LA UNE
-                    </>
-                  ) : (
-                    "ON SE RETROUVE ?"
-                  )}
+                <span className="pill">
+                  {data.registrations.some(
+                    (r) => r.event_id === featured.event.id,
+                  )
+                    ? "Vous êtes inscrit"
+                    : featured.event.featured
+                      ? "À la une"
+                      : "Suggestion"}
                 </span>
                 <h3>{featured.event.title}</h3>
                 <p>
-                  {formatDate(featured.date, { day: "numeric", month: "long" })}{" "}
+                  {formatDate(featured.date, {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                  })}{" "}
                   · {featured.event.time}
                 </p>
-                <span className="text-link">
-                  Découvrir la rencontre <ArrowUpRight size={16} />
-                </span>
               </div>
             </a>
           ) : (
             <Empty>Aucune rencontre à venir.</Empty>
           )}
-          {data.favorites.length === 0 && !myTutor && (
-            <a href="#ressources" className="horizon-item">
-              <span className="pill">
-                <Star size={11} /> RESSOURCES
-              </span>
-              <h3>Gardez vos liens officiels sous la main</h3>
-              <p>Ajoutez vos premières ressources en favoris.</p>
+          {data.notes.length + data.documents.length > 0 && (
+            <a href="#semaine" className="horizon-item">
+              <span className="pill">Dernière trace au portfolio</span>
+              <h3>
+                {
+                  [
+                    ...data.notes.map((n) => ({ t: n.title, d: n.date })),
+                    ...data.documents.map((d) => ({
+                      t: d.title,
+                      d: d.created_at.slice(0, 10),
+                    })),
+                  ].sort((a, b) => b.d.localeCompare(a.d))[0]?.t
+                }
+              </h3>
+              <p>
+                {formatDate(
+                  [
+                    ...data.notes.map((n) => n.date),
+                    ...data.documents.map((d) => d.created_at.slice(0, 10)),
+                  ]
+                    .sort()
+                    .at(-1)!,
+                )}
+              </p>
             </a>
           )}
+        </div>
+      </section>
+    </>
+  );
+}
+function bookingStatus(s: string) {
+  return s === "confirmée"
+    ? "confirmé"
+    : s === "demandée"
+      ? "en attente de confirmation"
+      : s;
+}
+function ChildProgress({
+  name,
+  data,
+  today,
+}: {
+  name: string;
+  data: Data;
+  today: string;
+}) {
+  const items = data.curriculum_items.filter(
+    (i) => data.curricula.find((c) => c.id === i.curriculum_id)?.child === name,
+  );
+  const doneItems = items.filter((i) => i.done).length;
+  const grades = data.grades.filter((g) => g.child === name);
+  const avg = grades.length
+    ? Math.round(
+        grades.reduce((n, g) => n + (g.score / g.max) * 100, 0) / grades.length,
+      )
+    : null;
+  const recent = [...grades]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 3);
+  const trend =
+    recent.length >= 2
+      ? Math.round(
+          (recent[0].score / recent[0].max -
+            recent[recent.length - 1].score / recent[recent.length - 1].max) *
+            100,
+        )
+      : null;
+  const nextItem = items
+    .filter((i) => !i.done && i.planned_date && i.planned_date >= today)
+    .sort((a, b) => a.planned_date!.localeCompare(b.planned_date!))[0];
+  const session = data.bookings
+    .filter(
+      (b) =>
+        b.child === name &&
+        ["demandée", "confirmée"].includes(b.status) &&
+        b.date >= today,
+    )
+    .sort((a, b) => a.date.localeCompare(b.date))[0];
+  const traces =
+    data.notes.filter((n) => n.child === name).length +
+    data.documents.filter((d) => d.child === name).length;
+  const child = data.children.find((c) => c.name === name);
+  return (
+    <article className="child-progress">
+      <header>
+        <span className="avatar">{name[0]}</span>
+        <div>
+          <h3>{name}</h3>
+          <small>
+            {child?.birth_year
+              ? `${new Date(today).getFullYear() - child.birth_year} ans · `
+              : ""}
+            {traces} trace{traces > 1 ? "s" : ""} au portfolio
+          </small>
+        </div>
+      </header>
+      <div className="metric">
+        <span>
+          Programme couvert{" "}
+          <strong>
+            {items.length
+              ? `${Math.round((doneItems / items.length) * 100)} %`
+              : "aucun programme"}
+          </strong>
+        </span>
+        <progress value={doneItems} max={items.length || 1} />
+      </div>
+      <div className="metric">
+        <span>
+          Moyenne des résultats{" "}
+          <strong>
+            {avg === null ? "pas encore de note" : `${avg} %`}
+            {trend !== null && trend !== 0 && (
+              <span className={trend > 0 ? "up" : "down"}>
+                {" "}
+                {trend > 0 ? "▲" : "▼"} {Math.abs(trend)}
+              </span>
+            )}
+          </strong>
+        </span>
+        <progress value={avg ?? 0} max={100} />
+      </div>
+      <div className="next">
+        {nextItem ? (
+          <>
+            Prochaine notion : <strong>{nextItem.title}</strong>
+            <small>
+              {nextItem.subject} · {formatDate(nextItem.planned_date!)}
+            </small>
+          </>
+        ) : session ? (
+          <>
+            Prochaine séance : <strong>{session.subject}</strong>
+            <small>
+              {formatDate(session.date)} · {session.time}
+            </small>
+          </>
+        ) : (
+          <>
+            Rien de planifié cette semaine
+            <small>
+              Ajoutez un programme ou une activité dans « Ma semaine ».
+            </small>
+          </>
+        )}
+      </div>
+    </article>
+  );
+}
+function AdminDashboard({ data, profile, api }: Props) {
+  const today = api.mode === "demo" ? "2026-09-07" : localDate();
+  const monthStart = today.slice(0, 7) + "-01";
+  const stat = (n: number, label: string, link: string, alert = false) => (
+    <div
+      className={`stat-tile ${alert && n > 0 ? "alert-tile" : ""}`}
+      key={label}
+    >
+      <strong>{n}</strong>
+      <small>{label}</small>
+      <a href={link}>{alert && n > 0 ? "À traiter" : "Voir"}</a>
+    </div>
+  );
+  const parents = data.members.filter((m) => m.role === "parent");
+  const withProfile = parents.filter((m) => m.city || m.bio).length;
+  const proposals = data.events.filter(
+    (e) => !e.published && e.organizer.includes("membre"),
+  ).length;
+  const questions = data.lesson_questions.filter((q) => !q.answer).length;
+  const bookingsMonth = data.bookings.filter(
+    (b) => b.date >= monthStart && b.status !== "annulée",
+  ).length;
+  const attemptsMonth = data.exam_attempts.filter(
+    (a) => a.created_at >= monthStart,
+  ).length;
+  const cities = [
+    ...data.members.reduce(
+      (m, x) => (x.city ? m.set(x.city, (m.get(x.city) ?? 0) + 1) : m),
+      new Map<string, number>(),
+    ),
+  ].sort((a, b) => b[1] - a[1]);
+  return (
+    <>
+      <PageTitle
+        eyebrow={formatDate(today, {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        })}
+        title={`Bonjour ${profile.display_name}.`}
+        description="L’état de la communauté et ce qui attend l’équipe aujourd’hui."
+      />
+      <section className="admin-stats">
+        {stat(data.reports.length, "signalements", "#admin", true)}
+        {stat(proposals, "rencontres à vérifier", "#admin", true)}
+        {stat(questions, "questions sans réponse", "#admin", true)}
+        {stat(
+          data.tutors.filter((t) => !t.published).length,
+          "profils d’intervenants à publier",
+          "#admin",
+          true,
+        )}
+        {stat(parents.length, "familles membres", "#communaute/membres")}
+        {stat(withProfile, "profils complétés", "#communaute/membres")}
+        {stat(
+          data.group_members.length,
+          "adhésions à des groupes",
+          "#communaute",
+        )}
+        {stat(data.posts.length, "discussions", "#communaute")}
+        {stat(data.replies.length, "réponses", "#communaute")}
+        {stat(
+          data.registrations.reduce((n) => n + 1, 0),
+          "inscriptions aux rencontres",
+          "#evenements",
+        )}
+        {stat(bookingsMonth, "rendez-vous ce mois-ci", "#admin")}
+        {stat(attemptsMonth, "examens passés ce mois-ci", "#examens")}
+        {stat(
+          data.courses.filter((c) => c.published).length,
+          "cours publiés",
+          "#admin",
+        )}
+        {stat(
+          data.exams.filter((e) => e.published).length,
+          "examens publiés",
+          "#admin",
+        )}
+      </section>
+      <section className="dashboard-lower">
+        <div>
+          <div className="section-heading">
+            <h2>Dernières discussions</h2>
+            <a href="#communaute">
+              Modérer <ArrowRight size={16} />
+            </a>
+          </div>
+          {[...data.posts]
+            .sort((a, b) => b.created_at.localeCompare(a.created_at))
+            .slice(0, 4)
+            .map((p) => (
+              <a
+                href={"#communaute/" + p.id}
+                className="community-preview"
+                key={p.id}
+              >
+                <span className="avatar sand">{p.author[0]}</span>
+                <div>
+                  <small>
+                    {p.author} <span>· {timeAgo(p.created_at)}</span>
+                  </small>
+                  <h3>{p.title}</h3>
+                  <p>{p.body.slice(0, 100)}…</p>
+                </div>
+                <ChevronRight size={20} />
+              </a>
+            ))}
+        </div>
+        <div className="upcoming">
+          <div className="section-heading">
+            <h2>Familles par ville</h2>
+            <MapPin size={19} />
+          </div>
+          <div className="stat-tile">
+            {cities.length ? (
+              cities.slice(0, 8).map(([city, n]) => (
+                <div className="metric" key={city}>
+                  <span>
+                    {city} <strong>{n}</strong>
+                  </span>
+                  <progress value={n} max={cities[0][1]} />
+                </div>
+              ))
+            ) : (
+              <small className="muted">Aucune ville renseignée.</small>
+            )}
+          </div>
+          <div className="section-heading">
+            <h2>Prochaines rencontres</h2>
+          </div>
+          {occurrences(
+            data.events.filter((e) => e.published),
+            today,
+            shiftDate(today, 60),
+          )
+            .slice(0, 3)
+            .map((o) => (
+              <a href="#evenements" className="horizon-item" key={o.key}>
+                <span className="pill">
+                  {data.event_counts.find((c) => c.event_id === o.event.id)
+                    ?.count ?? 0}{" "}
+                  inscription(s)
+                </span>
+                <h3>{o.event.title}</h3>
+                <p>
+                  {formatDate(o.date)} · {o.event.time}
+                </p>
+              </a>
+            ))}
         </div>
       </section>
     </>

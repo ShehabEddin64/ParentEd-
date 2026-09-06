@@ -31,6 +31,7 @@ import {
   type Member,
 } from "../domain";
 import { Empty, PageTitle } from "./ui";
+import { pages } from "../images";
 import { MapView, type MapMarker } from "./MapView";
 function route() {
   const [, second = "", third = ""] = location.hash.slice(1).split("/");
@@ -60,10 +61,13 @@ export function Community(props: Props) {
   return (
     <>
       <PageTitle
-        eyebrow="ON AVANCE MIEUX ENSEMBLE"
+        eyebrow="On avance mieux ensemble"
         title="Entre parents, tout simplement."
         description="Des discussions, des familles près de chez vous, une carte et des messages privés : de quoi se rencontrer pour de vrai."
       />
+      {tab === "" && (
+        <img className="section-photo" src={pages.community} alt="" />
+      )}
       <div className="tabs community-tabs">
         {tabs.map(([id, label, Icon]) => (
           <a
@@ -275,7 +279,7 @@ function Discussions(props: Props) {
                   </span>
                   {p.pinned && (
                     <span className="pill featured">
-                      <Pin size={11} /> ÉPINGLÉ
+                      <Pin size={11} /> Épinglé
                     </span>
                   )}
                   <span className="pill">{p.category}</span>
@@ -726,7 +730,7 @@ function CommunityMap(props: Props) {
             </div>
           ) : kind === "city" ? (
             <>
-              <span className="pill">FAMILLES</span>
+              <span className="pill">Familles</span>
               <h3>{detail.title}</h3>
               <ul className="member-mini-list">
                 {data.members
@@ -768,7 +772,7 @@ function CommunityMap(props: Props) {
                 data.event_counts.find((c) => c.event_id === e.id)?.count ?? 0;
               return (
                 <>
-                  <span className="pill">RENCONTRE</span>
+                  <span className="pill">Rencontre</span>
                   <h3>{e.title}</h3>
                   <p className="small">
                     {next ? formatDate(next.date) : formatDate(e.date)} ·{" "}
@@ -791,7 +795,7 @@ function CommunityMap(props: Props) {
               const t = data.tutors.find((x) => x.id === id)!;
               return (
                 <>
-                  <span className="pill">TUTEUR PARTENAIRE</span>
+                  <span className="pill">Tuteur partenaire</span>
                   <h3>{t.display_name}</h3>
                   <p className="small">{t.subjects.join(" · ")}</p>
                   <p className="small muted">{t.qualifications}</p>
@@ -979,7 +983,7 @@ function PostDetail(props: Props & { postId: string }) {
         <div className="pill-row">
           {post.pinned && (
             <span className="pill featured">
-              <Pin size={11} /> ÉPINGLÉ
+              <Pin size={11} /> Épinglé
             </span>
           )}
           <span className="pill">{post.category}</span>

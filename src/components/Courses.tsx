@@ -14,7 +14,8 @@ import {
 } from "lucide-react";
 import { completion, required } from "../domain";
 import type { Props } from "../App";
-import { Art, Empty, External, PageTitle, downloadBlob } from "./ui";
+import { Empty, External, PageTitle, downloadBlob } from "./ui";
+import { photoFor } from "../images";
 export function Courses({ data, profile, api, run, busy }: Props) {
   const [selected, setSelected] = useState(
     () => location.hash.split("/")[1] || "",
@@ -127,7 +128,7 @@ export function Courses({ data, profile, api, run, busy }: Props) {
                 <p key={i}>{p}</p>
               ))}
               <div className="exercise">
-                <span className="eyebrow">À VOUS D’ESSAYER</span>
+                <span className="eyebrow">À vous d’essayer</span>
                 <h3>Une petite action, aujourd’hui</h3>
                 <p>{lesson.exercise}</p>
                 <a href="#semaine" className="text-link">
@@ -187,7 +188,7 @@ export function Courses({ data, profile, api, run, busy }: Props) {
   return (
     <>
       <PageTitle
-        eyebrow="APPRENDRE POUR MIEUX ACCOMPAGNER"
+        eyebrow="Apprendre pour mieux accompagner"
         title="Un temps pour vous former."
         description="Des idées concrètes pour votre quotidien de parent-éducateur : modules, exemples, exercices et modèles à réutiliser."
       />
@@ -203,12 +204,19 @@ export function Courses({ data, profile, api, run, busy }: Props) {
         ))}
       </div>
       <div className="course-grid">
-        {courses.map((c, i) => {
+        {courses.map((c) => {
           const l = data.lessons.filter((l) => l.course_id === c.id);
           const p = pct(c.id);
           return (
             <a key={c.id} href={"#cours/" + c.id} className="course-card">
-              <Art variant={i} />
+              <div className="card-photo">
+                <img
+                  className="photo"
+                  src={photoFor("course", c.category + " " + c.title, c.id)}
+                  alt=""
+                  loading="lazy"
+                />
+              </div>
               <div className="course-card-content">
                 <span className="pill">{c.category}</span>
                 <h2>{c.title}</h2>
@@ -265,7 +273,7 @@ function Template({ text, title }: { text: string; title: string }) {
   };
   return (
     <section className="template-box">
-      <span className="eyebrow">MODÈLE À RÉUTILISER</span>
+      <span className="eyebrow">Modèle à réutiliser</span>
       <h3>{text.split("\n")[0]}</h3>
       <pre>{text.split("\n").slice(1).join("\n").trim()}</pre>
       <div className="discussion-actions">
@@ -455,7 +463,7 @@ function Questions({
           <p className="preserve-lines">{q.body}</p>
           {q.answer ? (
             <div className="answer">
-              <span className="pill">RÉPONSE DE L’ÉQUIPE</span>
+              <span className="pill">Réponse de l’équipe</span>
               <p className="preserve-lines">{q.answer}</p>
             </div>
           ) : (

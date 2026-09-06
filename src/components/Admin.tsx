@@ -456,7 +456,7 @@ export function Admin({ data, api, run, busy }: Props) {
   return (
     <>
       <PageTitle
-        eyebrow="ADMINISTRATION DES CONTENUS"
+        eyebrow="Administration des contenus"
         title="Faire vivre ParentEd."
         description="Préparez les cours, les ressources, les groupes, les rencontres et l’annuaire des tuteurs. Répondez aux questions et modérez les échanges."
         action={
@@ -595,7 +595,7 @@ export function Admin({ data, api, run, busy }: Props) {
           {!data.reports.length && <Empty>Aucun signalement à traiter.</Empty>}
           {data.reports.map((r) => (
             <article className="editor" key={r.id}>
-              <span className="pill">À EXAMINER</span>
+              <span className="pill">À examiner</span>
               <h2>
                 {data.posts.find((p) => p.id === r.post_id)?.title ||
                   "Discussion indisponible"}
