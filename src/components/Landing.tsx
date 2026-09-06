@@ -493,6 +493,44 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
     ],
   ];
   const [open, setOpen] = useState(0);
+  const tools = [
+    [
+      "accueil",
+      "Accueil",
+      "Votre semaine en un coup d'œil : prochain rendez-vous, agenda, météo des sorties, progrès des enfants, raccourcis. Chaque widget se déplace ou se masque.",
+    ],
+    [
+      "semaine",
+      "Ma semaine",
+      "Le planning par enfant, le programme importé et réparti sur vos jours d'école, les séances de tutorat et vos activités, au même endroit.",
+    ],
+    [
+      "carte",
+      "Carte des familles",
+      "Les familles par ville, les rencontres à venir et les tuteurs, sur une carte. Un clic pour écrire à une famille ou s'inscrire à une sortie.",
+    ],
+    [
+      "rendezvous",
+      "Rendez-vous",
+      "Tuteurs, conseillers et coachs vérifiés, avec leurs créneaux réels. La réservation est confirmée tout de suite; le compte rendu arrive après la séance.",
+    ],
+    [
+      "examens",
+      "Examens",
+      "Des examens d'entraînement chronométrés et corrigés, résultat enregistré par enfant.",
+    ],
+    [
+      "resultats",
+      "Résultats",
+      "Notes pondérées, moyenne générale et par matière, courbes d'évolution. Des repères pour la famille, pas un bulletin officiel.",
+    ],
+  ] as const;
+  const [tool, setTool] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t = setInterval(() => setTool((x) => (x + 1) % tools.length), 6000);
+    return () => clearInterval(t);
+  }, [tools.length]);
   return (
     <div className="landing">
       <header className="landing-nav">
@@ -502,6 +540,7 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
         <nav aria-label="Sections">
           <a href="#probleme">Le problème</a>
           <a href="#solution">La solution</a>
+          <a href="#outils">Les outils</a>
           <a href="#offre">L'offre et le tarif</a>
           <a href="#faq">Questions</a>
         </nav>
@@ -641,6 +680,52 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
             </Reveal>
           ))}
         </div>
+      </section>
+      <section id="outils" className="landing-section tools">
+        <Reveal>
+          <h2>Une plateforme qui a tous les outils dont vous avez besoin.</h2>
+          <p className="section-lead">
+            Ce sont de vraies captures de ParentEd, avec une famille de
+            démonstration.
+          </p>
+        </Reveal>
+        <Reveal>
+          <div
+            className="tool-tabs"
+            role="tablist"
+            aria-label="Outils de la plateforme"
+          >
+            {tools.map(([key, label], i) => (
+              <button
+                key={key}
+                role="tab"
+                aria-selected={tool === i}
+                className={tool === i ? "active" : ""}
+                onClick={() => setTool(i)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="device">
+            <div className="device-bar">
+              <span />
+              <span />
+              <span />
+              <em>parented.parented.workers.dev</em>
+            </div>
+            {tools.map(([key], i) => (
+              <img
+                key={key}
+                src={`/images/app-${key}.jpg`}
+                alt={`Capture d'écran de ParentEd : ${tools[i][1]}`}
+                className={tool === i ? "show" : ""}
+                loading="eager"
+              />
+            ))}
+          </div>
+          <p className="tool-caption">{tools[tool][2]}</p>
+        </Reveal>
       </section>
       <section id="offre" className="landing-section offer">
         <Reveal>

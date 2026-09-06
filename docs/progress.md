@@ -68,6 +68,7 @@ Mis à jour le 6 septembre 2026 (troisième itération).
 - Migration V8 : table `leads` (insertion anonyme limitée à 3 par courriel et 300 par jour, lecture réservée à l’équipe); onglet « Demandes de contact » dans l’administration avec réponse par courriel et statut traité.
 - Animations respectueuses de `prefers-reduced-motion`.
 - Révision selon les retours : héros blanc sans photo avec de grands personnages sur les collines, titres centrés et agrandis sans sur-titres, sections rapprochées, listes sans boîtes ni icônes, solution en six points sans photos, « mardi type » retiré, offre et tarif côte à côte avec la comparaison « moins cher qu’une heure de tutorat », FAQ en grand, pied de page blanc avec logo visible, colonnes et icônes sociales.
+- Section « Une plateforme qui a tous les outils dont vous avez besoin » : six captures réelles de la démonstration (accueil, semaine, carte, rendez-vous, examens, résultats) dans un cadre de navigateur, onglets et rotation automatique; script `scripts/capture-screens.mjs` (Playwright) pour les régénérer.
 
 ## Vérifications exécutées
 

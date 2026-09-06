@@ -68,7 +68,7 @@ npm run check:cloudflare
 - `src/data/gateway.ts` : contrat de données; `supabase.ts` seuls appels Supabase; `demo.ts` simulateur local avec les mêmes règles d’accès; `seed.ts` données fictives.
 - `src/components/` : Courses, Family, Social (ressources, rencontres), Community (discussions, annuaire, carte, messages), MapView (Leaflet), Profile, Tutoring, Admin.
 - `supabase/migrations/` : six migrations versionnées; `supabase/functions/booking-email` (courriel de confirmation) et `supabase/functions/assistant` (Claude); `supabase/parented-complet.sql` généré par `npm run sql:bundle`.
-- `tests/` : métier et SQL. `scripts/` : seed, comptes locaux, bundle SQL.
+- `tests/` : métier et SQL. `scripts/` : seed, comptes locaux, bundle SQL, captures d’écran de la démo pour la page publique (`node scripts/capture-screens.mjs`, serveur de développement lancé).
 
 Hébergement : React + TypeScript + Vite servi en SPA par Cloudflare Workers Static Assets (`wrangler.jsonc`); appels authentifiés directement vers Supabase, contrôlés par RLS. En-têtes de sécurité et CSP dans `public/_headers`.
 
