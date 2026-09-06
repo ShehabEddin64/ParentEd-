@@ -30,9 +30,16 @@ Mis à jour le 6 septembre 2026 (troisième itération).
 - **Tutorat** : avis des familles après une séance terminée, note moyenne sur les fiches, avis visibles par le tuteur.
 - Migration `202609060003_parented_v3.sql`, seed et bundle SQL régénérés, comptes de démonstration Fatima et Marc, 37 tests.
 
+### Quatrième itération : réservation réelle, examens, programme, notes
+- **Rendez-vous** : annuaire élargi aux conseillers aux démarches et coachs parentaux; créneaux concrets calculés à partir des disponibilités (30/45/60/90 min) et des réservations existantes; calendrier de sélection sur deux semaines; réservation confirmée immédiatement; déclencheur SQL `check_booking_slot` refusant un créneau hors disponibilité ou déjà pris (y compris séries hebdomadaires); lien de rencontre en ligne; fonction Edge `booking-email` (Resend) pour le courriel de confirmation.
+- **Examens** : tables `exams`, `exam_questions`, `exam_attempts`; page « Examens » avec examens chronométrés, correction et explications, résultat enregistré par enfant et converti en note; ressources de préparation; administration des examens et questions; 3 examens fictifs (16 questions).
+- **Programme** : `curricula` et `curriculum_items`; import par fichier CSV/texte ou collage, répartition automatique sur les jours choisis, éléments affichés dans « Ma semaine », suivi du % couvert global et par matière.
+- **Résultats** : `grades`; saisie manuelle, notes issues des examens, moyenne générale et par matière, courbe d’évolution, tableau détaillé.
+- Migration `202609060004_parented_v4.sql`, seed enrichi (Julie conseillère, Omar coach, programme et notes de Lina), 39 tests.
+
 ## Vérifications exécutées
 
-- `npm test` : **37 tests réussis**, dont **24 tests PostgreSQL/PGlite** exécutant les trois migrations (tutorat, propositions, favoris, groupes, questions, familles, profils, annuaire, messages, notifications, j’aime, avis).
+- `npm test` : **39 tests réussis**, dont **26 tests PostgreSQL/PGlite** exécutant les quatre migrations (tutorat, propositions, favoris, groupes, questions, familles, profils, annuaire, messages, notifications, j’aime, avis).
 - `npm run build` et `tsc -b` réussis; `npm run format:check` réussi; `wrangler deploy --dry-run` réussi, sans publication.
 - Navigateur (Vite 5173, ordinateur 1280 px et mobile 375 px) : accueil, tutorat, rencontres avec annonce à la une et récurrence, communauté avec groupes, semaine avec plan hebdomadaire et séance de tutorat, leçon avec modèle/note/questions, portfolio; flux exécutés : demande de séance (refus d’un jour sans disponibilité, puis acceptation), favori, adhésion à un groupe, proposition de rencontre visible par l’administration, espace tutrice Nadia avec ses séances.
 

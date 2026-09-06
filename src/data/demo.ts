@@ -3,6 +3,7 @@ import {
   tableNames,
   readOnlyTables,
   validateFile,
+  slotsFor,
   type Data,
   type Table,
   type Tables,
@@ -90,6 +91,9 @@ export class DemoGateway implements Gateway {
   onAuthEvent(_listener: (event: AuthEvent) => void) {
     return () => {};
   }
+  async sendBookingEmail() {
+    return false;
+  }
   async logout() {
     this.storage.removeItem(sessionKey);
   }
@@ -131,6 +135,14 @@ export class DemoGateway implements Gateway {
       case "events": {
         const e = row as Tables["events"];
         return e.published || admin || e.created_by === p.id;
+      }
+      case "exams":
+        return (row as Tables["exams"]).published || admin;
+      case "exam_questions": {
+        const q = row as Tables["exam_questions"];
+        return data.exams.some(
+          (e) => e.id === q.exam_id && (e.published || admin),
+        );
       }
       case "lessons": {
         const l = row as Tables["lessons"];
@@ -194,6 +206,8 @@ export class DemoGateway implements Gateway {
       case "lessons":
       case "resources":
       case "groups":
+      case "exams":
+      case "exam_questions":
         return admin;
       case "events": {
         const e = row as Tables["events"];
@@ -215,7 +229,7 @@ export class DemoGateway implements Gateway {
         if (operation === "delete") return b.status === "demandée";
         if (!previous)
           return (
-            b.status === "demandée" &&
+            ["demandée", "confirmée"].includes(b.status) &&
             data.tutors.some((t) => t.id === b.tutor_id && t.published)
           );
         return ["demandée", "annulée"].includes(b.status);
@@ -282,6 +296,28 @@ export class DemoGateway implements Gateway {
         if ("user_id" in row) return row.user_id === p.id;
         return false;
     }
+  }
+  /** Mirrors the SQL trigger check_booking_slot. */
+  private checkSlot(data: Data, b: Tables["bookings"]) {
+    if (!["demandée", "confirmée"].includes(b.status)) return;
+    const tutor = data.tutors.find((t) => t.id === b.tutor_id);
+    if (!tutor) throw new Error("Tuteur introuvable.");
+    const others = data.bookings.filter((x) => x.id !== b.id);
+    const slot = slotsFor(
+      tutor,
+      data.tutor_availability,
+      others,
+      b.date,
+      1,
+    ).find((s) => s.date === b.date && s.time === b.time);
+    if (!slot)
+      throw new Error(
+        "Ce créneau ne fait pas partie des disponibilités annoncées.",
+      );
+    if (slot.taken)
+      throw new Error(
+        "Ce créneau vient d’être réservé. Choisissez-en un autre.",
+      );
   }
   /** Mirrors the SQL notification triggers. Never notifies the acting person. */
   private notify(
@@ -443,6 +479,7 @@ export class DemoGateway implements Gateway {
       (old && !this.permitted(t, old, p, "save", data, old))
     )
       throw new Error("Accès refusé.");
+    if (t === "bookings") this.checkSlot(data, row as Tables["bookings"]);
     const field = personalUnique[t];
     if (field) {
       const r = row as unknown as Record<string, string>;
@@ -537,6 +574,11 @@ export class DemoGateway implements Gateway {
       drop("tutor_reports", "booking_id");
       drop("tutor_reviews", "booking_id");
     }
+    if (t === "exams") {
+      drop("exam_questions", "exam_id");
+      drop("exam_attempts", "exam_id");
+    }
+    if (t === "curricula") drop("curriculum_items", "curriculum_id");
   }
   async upload(file: File, family: string) {
     validateFile(file);

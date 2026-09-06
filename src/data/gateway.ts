@@ -23,6 +23,8 @@ export interface Gateway {
     changes: Partial<Tables[K]>,
   ): Promise<void>;
   remove(table: Table, id: string): Promise<void>;
+  /** Asks the server to e-mail a booking confirmation. Resolves true only when a message was really sent. */
+  sendBookingEmail(bookingId: string): Promise<boolean>;
   upload(file: File, family: string): Promise<string>;
   download(path: string): Promise<Blob>;
   deleteFile(path: string): Promise<void>;

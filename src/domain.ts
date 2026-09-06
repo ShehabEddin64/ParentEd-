@@ -185,6 +185,75 @@ export type Tutor = {
   region: string;
   mode: "en ligne" | "en personne" | "les deux";
   published: boolean;
+  kind: "tuteur" | "conseiller" | "coach";
+  slot_minutes: 30 | 45 | 60 | 90;
+  meeting_url: string | null;
+  contact_email: string | null;
+};
+export const tutorKindLabels = {
+  tuteur: "Tuteur",
+  conseiller: "Conseiller",
+  coach: "Coach parental",
+} as const;
+export type Exam = {
+  id: string;
+  title: string;
+  subject: string;
+  level: string;
+  description: string;
+  minutes: number;
+  published: boolean;
+  position: number;
+};
+export type ExamQuestion = {
+  id: string;
+  exam_id: string;
+  position: number;
+  prompt: string;
+  options: string[];
+  answer_index: number;
+  explanation: string;
+};
+export type ExamAttempt = {
+  id: string;
+  family_id: string;
+  user_id: string;
+  exam_id: string;
+  child: string;
+  score: number;
+  total: number;
+  answers: number[];
+  created_at: string;
+};
+export type Curriculum = {
+  id: string;
+  family_id: string;
+  child: string;
+  title: string;
+  school_year: string;
+  created_at: string;
+};
+export type CurriculumItem = {
+  id: string;
+  curriculum_id: string;
+  family_id: string;
+  subject: string;
+  title: string;
+  planned_date: string | null;
+  done: boolean;
+  position: number;
+};
+export type Grade = {
+  id: string;
+  family_id: string;
+  child: string;
+  subject: string;
+  title: string;
+  score: number;
+  max: number;
+  date: string;
+  source: "manuel" | "examen";
+  created_at: string;
 };
 export type TutorAvailability = {
   id: string;
@@ -280,6 +349,12 @@ export type Tables = {
   messages: Message;
   notifications: Notification;
   tutor_reviews: TutorReview;
+  exams: Exam;
+  exam_questions: ExamQuestion;
+  exam_attempts: ExamAttempt;
+  curricula: Curriculum;
+  curriculum_items: CurriculumItem;
+  grades: Grade;
 };
 export type Table = keyof Tables;
 export type Data = { [K in Table]: Tables[K][] };
@@ -315,6 +390,12 @@ export const tableNames: Table[] = [
   "messages",
   "notifications",
   "tutor_reviews",
+  "exams",
+  "exam_questions",
+  "exam_attempts",
+  "curricula",
+  "curriculum_items",
+  "grades",
 ];
 /** Views: loaded, never written. */
 export const readOnlyTables: Table[] = ["members", "event_counts"];
@@ -576,4 +657,134 @@ export function timeAgo(iso: string, now = new Date()) {
   const days = Math.round(hours / 24);
   if (days < 7) return `il y a ${days} j`;
   return new Date(iso).toLocaleDateString("fr-CA");
+}
+
+/** Adds minutes to an HH:MM time. */
+export function addMinutes(time: string, minutes: number) {
+  const total =
+    Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5)) + minutes;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+export type Slot = { date: string; time: string; taken: boolean };
+/**
+ * Cuts announced availability into concrete slots for the coming days and marks those already booked,
+ * including weekly bookings that recur on the same weekday. Mirrors the SQL trigger check_booking_slot.
+ */
+export function slotsFor(
+  tutor: Tutor,
+  availability: TutorAvailability[],
+  bookings: Booking[],
+  from: string,
+  days = 14,
+): Slot[] {
+  const out: Slot[] = [];
+  const active = bookings.filter(
+    (b) =>
+      b.tutor_id === tutor.id && ["demandée", "confirmée"].includes(b.status),
+  );
+  for (let i = 0; i < days; i++) {
+    const date = shiftDate(from, i);
+    const wd = weekday(date);
+    for (const a of availability.filter(
+      (x) => x.tutor_id === tutor.id && x.weekday === wd,
+    )) {
+      for (
+        let t = a.start_time;
+        addMinutes(t, tutor.slot_minutes) <= a.end_time && t < a.end_time;
+        t = addMinutes(t, tutor.slot_minutes)
+      ) {
+        const taken = active.some(
+          (b) =>
+            b.time === t &&
+            (b.date === date ||
+              (b.weekly && b.date <= date && weekday(b.date) === wd)),
+        );
+        out.push({ date, time: t, taken });
+      }
+    }
+  }
+  return out;
+}
+/** Parses a pasted curriculum: one item per line, "Matière | Titre" or "Matière ; Titre" or CSV "Matière,Titre[,AAAA-MM-JJ]". */
+export function parseCurriculum(text: string) {
+  const items: {
+    subject: string;
+    title: string;
+    planned_date: string | null;
+  }[] = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    const parts = line
+      .split(/\s*[|;\t,]\s*/)
+      .map((p) => p.replace(/^"|"$/g, "").trim());
+    if (parts.length === 1) {
+      items.push({ subject: "Général", title: parts[0], planned_date: null });
+      continue;
+    }
+    const date =
+      parts.slice(2).find((p) => /^\d{4}-\d{2}-\d{2}$/.test(p)) ?? null;
+    items.push({
+      subject: parts[0].slice(0, 80) || "Général",
+      title: parts[1].slice(0, 200),
+      planned_date: date,
+    });
+  }
+  return items.filter((i) => i.title);
+}
+/** Spreads undated items over chosen weekdays from a start date, in order, at most `perDay` items per day. */
+export function spreadDates<T extends { planned_date: string | null }>(
+  items: T[],
+  start: string,
+  weekdays: number[],
+  perDay = 2,
+): T[] {
+  let date = start;
+  let onDay = 0;
+  const next = () => {
+    let guard = 0;
+    do {
+      date = shiftDate(date, 1);
+    } while (!weekdays.includes(weekday(date)) && guard++ < 14);
+    onDay = 0;
+  };
+  if (!weekdays.includes(weekday(date))) next();
+  return items.map((item) => {
+    if (item.planned_date) return item;
+    if (onDay >= perDay) next();
+    onDay++;
+    return { ...item, planned_date: date };
+  });
+}
+export function percent(score: number, max: number) {
+  return max ? Math.round((score / max) * 100) : 0;
+}
+export function gradeStats(grades: Grade[]) {
+  const bySubject = new Map<string, Grade[]>();
+  for (const g of grades)
+    bySubject.set(g.subject, [...(bySubject.get(g.subject) ?? []), g]);
+  const avg = (rows: Grade[]) =>
+    rows.length
+      ? Math.round(
+          rows.reduce((n, g) => n + percent(g.score, g.max), 0) / rows.length,
+        )
+      : null;
+  return {
+    overall: avg(grades),
+    subjects: [...bySubject]
+      .map(([subject, rows]) => ({
+        subject,
+        average: avg(rows) ?? 0,
+        count: rows.length,
+        latest: [...rows].sort((a, b) => a.date.localeCompare(b.date)).at(-1)!,
+        series: [...rows]
+          .sort((a, b) => a.date.localeCompare(b.date))
+          .map((g) => ({
+            date: g.date,
+            value: percent(g.score, g.max),
+            title: g.title,
+          })),
+      }))
+      .sort((a, b) => a.subject.localeCompare(b.subject)),
+  };
 }

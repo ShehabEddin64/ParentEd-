@@ -110,6 +110,10 @@ const personal = [
   "post_likes",
   "messages",
   "tutor_reviews",
+  "exam_attempts",
+  "curricula",
+  "curriculum_items",
+  "grades",
 ];
 for (const table of personal)
   for (const source of seed[table]) {

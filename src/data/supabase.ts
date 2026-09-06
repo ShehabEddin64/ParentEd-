@@ -151,6 +151,17 @@ export class SupabaseGateway implements Gateway {
     const { error } = await this.client.from(t).delete().eq("id", id);
     if (error) throw new Error("Suppression impossible. Réessayez.");
   }
+  async sendBookingEmail(bookingId: string) {
+    try {
+      const { data, error } = await this.client.functions.invoke(
+        "booking-email",
+        { body: { booking_id: bookingId } },
+      );
+      return !error && Boolean((data as { sent?: boolean } | null)?.sent);
+    } catch {
+      return false;
+    }
+  }
   async upload(file: File, family: string) {
     validateFile(file);
     const path = family + "/" + crypto.randomUUID();

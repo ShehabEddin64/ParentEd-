@@ -191,7 +191,7 @@ describe("Tutorat, groupes et portfolio en démonstration", () => {
         id: crypto.randomUUID(),
         status: "confirmée",
       }),
-    ).rejects.toThrow("Accès refusé");
+    ).rejects.toThrow(/réservé|Accès refusé/);
     await api.logout();
     await api.login("nadia@demo.parented.test");
     expect((await api.load()).bookings.map((b) => b.id)).toContain(booking.id);

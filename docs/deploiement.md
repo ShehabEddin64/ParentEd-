@@ -115,6 +115,33 @@ Dashboard Cloudflare → Workers & Pages → `parented` → **Settings** → **D
 
 Workers & Pages → `parented` → Settings → **Builds** → connecter le dépôt. Commande de build : `npm run build`, commande de déploiement : `npx wrangler deploy`. Ajouter `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` et `VITE_ENABLE_DEMO` dans les **variables de build** (elles sont publiques, pas des secrets).
 
+## 7 bis. Courriels de confirmation des rendez-vous (facultatif)
+
+Les réservations fonctionnent sans cette étape; elle ajoute l’envoi d’un courriel au parent (et à l’intervenant s’il a une adresse).
+
+1. Créer un compte sur https://resend.com, vérifier un domaine d’envoi, copier une clé API.
+2. Installer la CLI Supabase déjà présente dans le projet et se connecter :
+
+```bash
+npx supabase login
+```
+
+```bash
+npx supabase link --project-ref VOTRE_ID_PROJET
+```
+
+3. Définir les secrets puis déployer la fonction :
+
+```bash
+npx supabase secrets set RESEND_API_KEY=re_xxx EMAIL_FROM="ParentEd <bonjour@votre-domaine.ca>"
+```
+
+```bash
+npx supabase functions deploy booking-email
+```
+
+Sans clé, la fonction répond « non envoyé » et l’application n’affiche simplement pas la mention « courriel envoyé ».
+
 ## 8. Sécurité et exploitation
 
 - `public/_headers` publie une CSP qui autorise `https://*.supabase.co` et les tuiles `tile.openstreetmap.org` pour la carte : un domaine Supabase personnalisé ou un autre fournisseur de tuiles exige d’ajuster `connect-src` / `img-src`.

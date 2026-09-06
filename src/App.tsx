@@ -22,6 +22,7 @@ import {
   Bell,
   MessageSquare,
   MapPin,
+  ClipboardList,
 } from "lucide-react";
 import {
   completion,
@@ -43,6 +44,7 @@ import { Events, Resources } from "./components/Social";
 import { Community } from "./components/Community";
 import { Tutoring } from "./components/Tutoring";
 import { Profile as ProfilePage } from "./components/Profile";
+import { Exams } from "./components/Exams";
 import { Admin } from "./components/Admin";
 export type Run = (
   work: () => Promise<void>,
@@ -59,7 +61,8 @@ const navigation = [
   ["accueil", "Mon accueil", Home],
   ["cours", "Mes cours", BookOpen],
   ["semaine", "Ma semaine", CalendarDays],
-  ["tutorat", "Tutorat", GraduationCap],
+  ["tutorat", "Rendez-vous", GraduationCap],
+  ["examens", "Examens", ClipboardList],
   ["ressources", "Ressources", Library],
   ["communaute", "Communauté", Users],
   ["evenements", "Rencontres", CalendarRange],
@@ -450,6 +453,8 @@ export default function App() {
             <Community {...props} />
           ) : page === "evenements" ? (
             <Events {...props} />
+          ) : page === "examens" ? (
+            <Exams {...props} />
           ) : page === "profil" ? (
             <ProfilePage {...props} />
           ) : page === "admin" && profile.role === "admin" ? (
@@ -979,6 +984,27 @@ function Dashboard({ data, profile, api }: Props) {
                   vivre
                 </strong>
                 <small>Dans votre planning familial</small>
+              </div>
+            </div>
+          )}
+          {!myTutor && data.curriculum_items.length > 0 && (
+            <div className="glance-row">
+              <span className="glance-icon">
+                <ClipboardList size={21} />
+              </span>
+              <div>
+                <strong>
+                  {Math.round(
+                    (data.curriculum_items.filter((i) => i.done).length /
+                      data.curriculum_items.length) *
+                      100,
+                  )}{" "}
+                  % du programme couvert
+                </strong>
+                <small>
+                  {data.curriculum_items.filter((i) => i.done).length} sur{" "}
+                  {data.curriculum_items.length} éléments
+                </small>
               </div>
             </div>
           )}

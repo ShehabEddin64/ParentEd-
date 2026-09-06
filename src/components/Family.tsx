@@ -15,6 +15,10 @@ import {
   Pencil,
   NotebookPen,
   Sparkles,
+  ListChecks,
+  BarChart3,
+  Upload as UploadIcon,
+  Wand2,
 } from "lucide-react";
 import {
   localDate,
@@ -24,10 +28,16 @@ import {
   shiftDate,
   weekDates,
   formatDate,
+  gradeStats,
+  parseCurriculum,
+  percent,
+  spreadDates,
   type Task,
   type Child,
   type LibraryItem,
   type Note,
+  type CurriculumItem,
+  type Grade,
 } from "../domain";
 import type { Props } from "../App";
 import { downloadBlob, Empty, External, PageTitle } from "./ui";
@@ -64,6 +74,8 @@ export function Family(props: Props) {
   const tabs = [
     ["semaine", "Ma semaine", CalendarDays],
     ["enfants", "Mes enfants", Users],
+    ["programme", "Programme", ListChecks],
+    ["resultats", "Résultats", BarChart3],
     ["bibliotheque", "Livres et ressources", BookMarked],
     ["portfolio", "Portfolio privé", LockKeyhole],
   ] as const;
@@ -226,6 +238,46 @@ export function Family(props: Props) {
                   </header>
                   <div className="day-activities">
                     {[
+                      ...data.curriculum_items
+                        .filter((i) => i.planned_date === day)
+                        .map((i) => ({
+                          time: "zz",
+                          node: (
+                            <article
+                              className={`activity plan ${i.done ? "done" : ""}`}
+                              key={i.id}
+                            >
+                              <div>
+                                <span>{i.subject}</span>
+                                <button
+                                  disabled={busy}
+                                  className="task-check"
+                                  aria-label={`${i.done ? "Remettre à faire" : "Terminer"} : ${i.title}`}
+                                  onClick={() =>
+                                    run(
+                                      () =>
+                                        api.save("curriculum_items", {
+                                          ...i,
+                                          done: !i.done,
+                                        }),
+                                      i.done
+                                        ? "Élément remis à faire."
+                                        : "Élément du programme terminé.",
+                                    )
+                                  }
+                                >
+                                  <Check size={14} />
+                                </button>
+                              </div>
+                              <span className="activity-title">{i.title}</span>
+                              <small>
+                                {data.curricula.find(
+                                  (c) => c.id === i.curriculum_id,
+                                )?.child || "Programme"}
+                              </small>
+                            </article>
+                          ),
+                        })),
                       ...sessions.map((b) => ({
                         time: b.time,
                         node: (
@@ -349,6 +401,8 @@ export function Family(props: Props) {
         </>
       )}
       {view === "enfants" && <Children {...props} />}
+      {view === "programme" && <Program {...props} childNames={childNames} />}
+      {view === "resultats" && <Results {...props} childNames={childNames} />}
       {view === "bibliotheque" && (
         <Library {...props} childNames={childNames} />
       )}
@@ -1159,6 +1213,821 @@ function Portfolio({
         L’export contient les données et la liste des fichiers. Téléchargez
         chaque fichier pour en conserver une copie.
       </p>
+    </>
+  );
+}
+function Program({
+  data,
+  profile,
+  api,
+  run,
+  busy,
+  childNames,
+}: Props & { childNames: string[] }) {
+  const [current, setCurrent] = useState(data.curricula[0]?.id ?? "");
+  const [create, setCreate] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [text, setText] = useState("");
+  const [item, setItem] = useState<Partial<CurriculumItem> | null>(null);
+  const [deleteId, setDeleteId] = useState("");
+  const curriculum =
+    data.curricula.find((c) => c.id === current) ?? data.curricula[0];
+  const items = data.curriculum_items
+    .filter((i) => i.curriculum_id === curriculum?.id)
+    .sort(
+      (a, b) =>
+        (a.planned_date ?? "9999").localeCompare(b.planned_date ?? "9999") ||
+        a.position - b.position,
+    );
+  const subjects = [...new Set(items.map((i) => i.subject))];
+  const total = items.length;
+  const done = items.filter((i) => i.done).length;
+  const createCurriculum = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const id = crypto.randomUUID();
+    if (
+      await run(
+        () =>
+          api.save("curricula", {
+            id,
+            family_id: profile.family_id,
+            child: optional(String(f.get("child")), 80),
+            title: required(String(f.get("title")), 160),
+            school_year: optional(String(f.get("school_year")), 40),
+            created_at: new Date().toISOString(),
+          }),
+        "Programme créé. Ajoutez ou importez ses éléments.",
+      )
+    ) {
+      setCurrent(id);
+      setCreate(false);
+      setImporting(true);
+    }
+  };
+  const doImport = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!curriculum) return;
+    const f = new FormData(e.currentTarget);
+    const parsed = parseCurriculum(text);
+    if (!parsed.length) {
+      await run(async () => {
+        throw new Error(
+          "Aucune ligne reconnue. Format : Matière | Titre | AAAA-MM-JJ (date facultative).",
+        );
+      });
+      return;
+    }
+    const days = [1, 2, 3, 4, 5, 6, 7].filter((d) => f.has("d" + d));
+    const start = String(f.get("start") || localDate());
+    const perDay = Number(f.get("per_day") || 2);
+    const dated =
+      f.has("spread") && days.length
+        ? spreadDates(parsed, shiftDate(start, -1), days, perDay)
+        : parsed;
+    const base = items.length;
+    if (
+      await run(
+        async () => {
+          for (const [i, row] of dated.entries())
+            await api.save("curriculum_items", {
+              id: crypto.randomUUID(),
+              curriculum_id: curriculum.id,
+              family_id: profile.family_id,
+              subject: row.subject,
+              title: row.title,
+              planned_date: row.planned_date,
+              done: false,
+              position: base + i + 1,
+            });
+        },
+        `${dated.length} élément${dated.length > 1 ? "s" : ""} ajouté${dated.length > 1 ? "s" : ""} au programme${f.has("spread") ? " et répartis dans le calendrier" : ""}.`,
+      )
+    ) {
+      setText("");
+      setImporting(false);
+    }
+  };
+  const saveItem = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!curriculum) return;
+    const f = new FormData(e.currentTarget);
+    if (
+      await run(
+        () =>
+          api.save("curriculum_items", {
+            id: item?.id ?? crypto.randomUUID(),
+            curriculum_id: curriculum.id,
+            family_id: profile.family_id,
+            subject: required(String(f.get("subject")), 80),
+            title: required(String(f.get("title")), 200),
+            planned_date: String(f.get("planned_date") || "") || null,
+            done: item?.done ?? false,
+            position: item?.position ?? items.length + 1,
+          }),
+        "Élément enregistré.",
+      )
+    )
+      setItem(null);
+  };
+  const spreadRemaining = async () => {
+    if (!curriculum) return;
+    const undated = items.filter((i) => !i.planned_date);
+    const dated = spreadDates(
+      undated,
+      shiftDate(api.mode === "demo" ? "2026-09-14" : localDate(), -1),
+      [1, 2, 3, 4, 5],
+      2,
+    );
+    await run(
+      async () => {
+        for (const row of dated) await api.save("curriculum_items", row);
+      },
+      `${dated.length} élément${dated.length > 1 ? "s" : ""} placé${dated.length > 1 ? "s" : ""} dans le calendrier (2 par jour, du lundi au vendredi).`,
+    );
+  };
+  return (
+    <>
+      <div className="privacy-banner">
+        <ListChecks size={24} />
+        <div>
+          <h2>Votre programme, dans votre calendrier</h2>
+          <p>
+            Collez ou importez la liste des notions à couvrir; ParentEd les
+            répartit sur vos jours d’école et suit ce qui est fait. Le programme
+            reste privé et ne constitue pas une validation officielle.
+          </p>
+        </div>
+      </div>
+      <div className="filter-bar">
+        <div className="tabs">
+          {data.curricula.map((c) => (
+            <button
+              key={c.id}
+              className={curriculum?.id === c.id ? "active" : ""}
+              onClick={() => setCurrent(c.id)}
+            >
+              {c.title}
+            </button>
+          ))}
+        </div>
+        <div className="discussion-actions">
+          {curriculum && (
+            <button
+              className="button secondary"
+              onClick={() => setImporting(!importing)}
+            >
+              <UploadIcon size={16} /> Importer
+            </button>
+          )}
+          <button className="button primary" onClick={() => setCreate(!create)}>
+            <Plus size={16} /> Nouveau programme
+          </button>
+        </div>
+      </div>
+      {create && (
+        <form className="editor form-grid" onSubmit={createCurriculum}>
+          <label className="span-2">
+            Titre
+            <input
+              name="title"
+              required
+              maxLength={160}
+              placeholder="Programme de Lina · année 2026-2027"
+            />
+          </label>
+          <label>
+            Enfant
+            <input name="child" list="children-names-prog" maxLength={80} />
+            <datalist id="children-names-prog">
+              {childNames.map((n) => (
+                <option key={n} value={n} />
+              ))}
+            </datalist>
+          </label>
+          <label>
+            Année scolaire
+            <input name="school_year" maxLength={40} placeholder="2026-2027" />
+          </label>
+          <button className="button primary" disabled={busy}>
+            Créer
+          </button>
+        </form>
+      )}
+      {importing && curriculum && (
+        <form className="editor" onSubmit={doImport}>
+          <h2>Importer des éléments dans « {curriculum.title} »</h2>
+          <p className="small muted">
+            Une ligne par notion : <code>Matière | Titre | 2026-09-15</code> (la
+            date est facultative). Un fichier CSV exporté d’un tableur
+            fonctionne aussi (colonnes matière, titre, date).
+          </p>
+          <label className="upload-zone small-zone">
+            <UploadIcon size={20} />
+            <strong>Choisir un fichier .csv ou .txt</strong>
+            <input
+              type="file"
+              accept=".csv,.txt,text/csv,text/plain"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) setText((await file.text()).slice(0, 50000));
+                e.target.value = "";
+              }}
+            />
+          </label>
+          <label>
+            Ou collez votre liste
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={8}
+              placeholder={
+                "Mathématiques | Fractions équivalentes\nFrançais | Le texte descriptif | 2026-09-16\nSciences | Le cycle de l’eau"
+              }
+            />
+          </label>
+          <p className="small muted">
+            {parseCurriculum(text).length} élément(s) reconnu(s).
+          </p>
+          <div className="form-grid">
+            <label className="checkbox-label span-2">
+              <input type="checkbox" name="spread" defaultChecked />
+              <Wand2 size={16} /> Répartir automatiquement les éléments sans
+              date dans le calendrier
+            </label>
+            <label>
+              À partir du
+              <input
+                type="date"
+                name="start"
+                defaultValue={api.mode === "demo" ? "2026-09-14" : localDate()}
+              />
+            </label>
+            <label>
+              Éléments par jour
+              <select name="per_day" defaultValue="2">
+                {[1, 2, 3, 4].map((n) => (
+                  <option key={n}>{n}</option>
+                ))}
+              </select>
+            </label>
+            <div className="span-2 chips-row">
+              {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+                <label key={d} className="chip">
+                  <input
+                    type="checkbox"
+                    name={"d" + d}
+                    defaultChecked={d <= 5}
+                  />
+                  {["", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"][d]}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="discussion-actions">
+            <button className="button primary" disabled={busy || !text.trim()}>
+              Importer
+            </button>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => setImporting(false)}
+            >
+              Fermer
+            </button>
+          </div>
+        </form>
+      )}
+      {!curriculum ? (
+        <Empty>
+          Créez un premier programme, puis importez ses notions : elles
+          apparaîtront dans « Ma semaine ».
+        </Empty>
+      ) : (
+        <>
+          <section className="stats-grid">
+            <div className="stat-tile hero">
+              <span className="eyebrow">PROGRAMME COUVERT</span>
+              <strong>{total ? Math.round((done / total) * 100) : 0} %</strong>
+              <small>
+                {done} sur {total} élément{total > 1 ? "s" : ""}
+                {curriculum.child && ` · ${curriculum.child}`}
+              </small>
+            </div>
+            {subjects.map((sub) => {
+              const rows = items.filter((i) => i.subject === sub);
+              const d = rows.filter((i) => i.done).length;
+              return (
+                <div className="stat-tile" key={sub}>
+                  <span className="eyebrow">{sub.toUpperCase()}</span>
+                  <strong>{Math.round((d / rows.length) * 100)} %</strong>
+                  <small>
+                    {d} / {rows.length} · prochain :{" "}
+                    {rows.find((i) => !i.done)?.title ?? "tout est fait"}
+                  </small>
+                  <progress value={d} max={rows.length} />
+                </div>
+              );
+            })}
+          </section>
+          <div className="section-heading">
+            <h2>Éléments du programme</h2>
+            <div className="discussion-actions">
+              {items.some((i) => !i.planned_date) && (
+                <button
+                  className="text-button"
+                  disabled={busy}
+                  onClick={spreadRemaining}
+                >
+                  <Wand2 size={15} /> Placer les éléments sans date
+                </button>
+              )}
+              <button
+                className="text-button"
+                onClick={() =>
+                  setItem({ subject: subjects[0] ?? "", planned_date: null })
+                }
+              >
+                <Plus size={15} /> Ajouter un élément
+              </button>
+            </div>
+          </div>
+          {item && (
+            <form
+              className="editor form-grid"
+              onSubmit={saveItem}
+              key={item.id || "new"}
+            >
+              <label>
+                Matière
+                <input
+                  name="subject"
+                  defaultValue={item.subject}
+                  required
+                  maxLength={80}
+                  list="subjects-list"
+                />
+                <datalist id="subjects-list">
+                  {subjects.map((s2) => (
+                    <option key={s2} value={s2} />
+                  ))}
+                </datalist>
+              </label>
+              <label>
+                Date prévue (facultatif)
+                <input
+                  name="planned_date"
+                  type="date"
+                  defaultValue={item.planned_date ?? ""}
+                />
+              </label>
+              <label className="span-2">
+                Notion, chapitre ou activité
+                <input
+                  name="title"
+                  defaultValue={item.title}
+                  required
+                  maxLength={200}
+                />
+              </label>
+              <div className="discussion-actions span-2">
+                <button className="button primary" disabled={busy}>
+                  Enregistrer
+                </button>
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => setItem(null)}
+                >
+                  Annuler
+                </button>
+              </div>
+            </form>
+          )}
+          {!items.length && (
+            <Empty>
+              Ce programme est vide. Utilisez « Importer » ou « Ajouter un
+              élément ».
+            </Empty>
+          )}
+          <div className="document-list">
+            {items.map((i) => (
+              <article key={i.id} className={i.done ? "done" : ""}>
+                <button
+                  className={`task-check big ${i.done ? "on" : ""}`}
+                  disabled={busy}
+                  aria-label={`${i.done ? "Remettre à faire" : "Terminer"} : ${i.title}`}
+                  onClick={() =>
+                    run(
+                      () =>
+                        api.save("curriculum_items", { ...i, done: !i.done }),
+                      i.done ? "Remis à faire." : "Terminé !",
+                    )
+                  }
+                >
+                  <Check size={16} />
+                </button>
+                <div>
+                  <strong>{i.title}</strong>
+                  <small>
+                    {i.subject}
+                    {i.planned_date
+                      ? ` · ${formatDate(i.planned_date)}`
+                      : " · sans date"}
+                  </small>
+                </div>
+                <button
+                  className="icon-button"
+                  aria-label={`Modifier ${i.title}`}
+                  onClick={() => setItem(i)}
+                >
+                  <Pencil size={17} />
+                </button>
+                {deleteId === i.id ? (
+                  <div className="delete-confirm">
+                    <button
+                      disabled={busy}
+                      onClick={async () => {
+                        if (
+                          await run(
+                            () => api.remove("curriculum_items", i.id),
+                            "Élément retiré.",
+                          )
+                        )
+                          setDeleteId("");
+                      }}
+                    >
+                      Supprimer
+                    </button>
+                    <button onClick={() => setDeleteId("")}>Garder</button>
+                  </div>
+                ) : (
+                  <button
+                    className="icon-button"
+                    aria-label={`Supprimer ${i.title}`}
+                    onClick={() => setDeleteId(i.id)}
+                  >
+                    <Trash2 size={17} />
+                  </button>
+                )}
+              </article>
+            ))}
+          </div>
+          {deleteId === "curriculum" ? (
+            <div className="delete-confirm">
+              <button
+                disabled={busy}
+                onClick={async () => {
+                  if (
+                    await run(
+                      () => api.remove("curricula", curriculum.id),
+                      "Programme supprimé.",
+                    )
+                  ) {
+                    setDeleteId("");
+                    setCurrent("");
+                  }
+                }}
+              >
+                Supprimer tout le programme
+              </button>
+              <button onClick={() => setDeleteId("")}>Garder</button>
+            </div>
+          ) : (
+            <button
+              className="text-button danger"
+              onClick={() => setDeleteId("curriculum")}
+            >
+              <Trash2 size={15} /> Supprimer ce programme
+            </button>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+function Chart({
+  series,
+}: {
+  series: { date: string; value: number; title: string }[];
+}) {
+  const w = 320;
+  const h = 110;
+  const pad = 22;
+  if (!series.length) return null;
+  const xs = (i: number) =>
+    series.length === 1
+      ? w / 2
+      : pad + (i * (w - pad * 2)) / (series.length - 1);
+  const ys = (v: number) => h - pad + 2 - ((h - pad * 2) * v) / 100;
+  const path = series
+    .map(
+      (p, i) => `${i ? "L" : "M"}${xs(i).toFixed(1)},${ys(p.value).toFixed(1)}`,
+    )
+    .join(" ");
+  return (
+    <svg
+      className="chart"
+      viewBox={`0 0 ${w} ${h}`}
+      role="img"
+      aria-label="Évolution des résultats en pourcentage"
+    >
+      {[0, 50, 100].map((g) => (
+        <g key={g}>
+          <line x1={pad} x2={w - pad} y1={ys(g)} y2={ys(g)} className="grid" />
+          <text x={pad - 6} y={ys(g) + 3} className="axis" textAnchor="end">
+            {g}
+          </text>
+        </g>
+      ))}
+      <path d={path} className="line" />
+      {series.map((p, i) => (
+        <g key={i}>
+          <circle cx={xs(i)} cy={ys(p.value)} r={4} className="dot">
+            <title>
+              {p.title} · {formatDate(p.date)} · {p.value} %
+            </title>
+          </circle>
+          {(i === 0 || i === series.length - 1) && (
+            <text
+              x={xs(i)}
+              y={ys(p.value) - 9}
+              className="label"
+              textAnchor="middle"
+            >
+              {p.value} %
+            </text>
+          )}
+        </g>
+      ))}
+    </svg>
+  );
+}
+function Results({
+  data,
+  profile,
+  api,
+  run,
+  busy,
+  childNames,
+}: Props & { childNames: string[] }) {
+  const kids = childNames.filter((n) => n !== everyone);
+  const [child, setChild] = useState(kids[0] ?? "");
+  const [edit, setEdit] = useState<Partial<Grade> | null>(null);
+  const [deleteId, setDeleteId] = useState("");
+  const grades = data.grades
+    .filter((g) => g.child === child)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const stats = gradeStats(grades);
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const score = Number(f.get("score"));
+    const max = Number(f.get("max"));
+    if (
+      await run(async () => {
+        if (!(max > 0) || score < 0 || score > max)
+          throw new Error("La note doit être comprise entre 0 et le maximum.");
+        await api.save("grades", {
+          id: edit?.id ?? crypto.randomUUID(),
+          family_id: profile.family_id,
+          child: required(String(f.get("child")), 80),
+          subject: required(String(f.get("subject")), 80),
+          title: required(String(f.get("title")), 160),
+          score,
+          max,
+          date: String(f.get("date")),
+          source: edit?.source ?? "manuel",
+          created_at: edit?.created_at ?? new Date().toISOString(),
+        });
+      }, "Résultat enregistré.")
+    ) {
+      setChild(String(f.get("child")));
+      setEdit(null);
+    }
+  };
+  return (
+    <>
+      <div className="filter-bar">
+        <div className="tabs">
+          {kids.map((k) => (
+            <button
+              key={k}
+              className={child === k ? "active" : ""}
+              onClick={() => setChild(k)}
+            >
+              {k}
+            </button>
+          ))}
+        </div>
+        <button
+          className="button primary"
+          onClick={() => setEdit({ child, date: localDate(), max: 10 })}
+        >
+          <Plus size={16} /> Ajouter un résultat
+        </button>
+      </div>
+      {edit && (
+        <form
+          className="editor form-grid"
+          onSubmit={submit}
+          key={edit.id || "new"}
+        >
+          <label>
+            Enfant
+            <input
+              name="child"
+              list="children-names-grades"
+              defaultValue={edit.child}
+              required
+              maxLength={80}
+            />
+            <datalist id="children-names-grades">
+              {kids.map((n) => (
+                <option key={n} value={n} />
+              ))}
+            </datalist>
+          </label>
+          <label>
+            Matière
+            <input
+              name="subject"
+              defaultValue={edit.subject}
+              required
+              maxLength={80}
+              list="grade-subjects"
+            />
+            <datalist id="grade-subjects">
+              {[...new Set(data.grades.map((g) => g.subject))].map((s2) => (
+                <option key={s2} value={s2} />
+              ))}
+            </datalist>
+          </label>
+          <label className="span-2">
+            Intitulé (dictée, quiz, projet…)
+            <input
+              name="title"
+              defaultValue={edit.title}
+              required
+              maxLength={160}
+            />
+          </label>
+          <label>
+            Note obtenue
+            <input
+              name="score"
+              type="number"
+              step="any"
+              min={0}
+              defaultValue={edit.score}
+              required
+            />
+          </label>
+          <label>
+            Sur
+            <input
+              name="max"
+              type="number"
+              step="any"
+              min={1}
+              defaultValue={edit.max ?? 10}
+              required
+            />
+          </label>
+          <label>
+            Date
+            <input name="date" type="date" defaultValue={edit.date} required />
+          </label>
+          <div className="discussion-actions">
+            <button className="button primary" disabled={busy}>
+              Enregistrer
+            </button>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => setEdit(null)}
+            >
+              Annuler
+            </button>
+          </div>
+        </form>
+      )}
+      {!kids.length ? (
+        <Empty>Ajoutez d’abord un enfant dans « Mes enfants ».</Empty>
+      ) : !grades.length ? (
+        <Empty>
+          Aucun résultat pour {child}. Ajoutez une note ou faites un examen
+          d’entraînement.
+        </Empty>
+      ) : (
+        <>
+          <section className="stats-grid">
+            <div className="stat-tile hero">
+              <span className="eyebrow">
+                MOYENNE GÉNÉRALE · {child.toUpperCase()}
+              </span>
+              <strong>{stats.overall} %</strong>
+              <small>
+                {grades.length} résultat{grades.length > 1 ? "s" : ""} ·{" "}
+                {stats.subjects.length} matière
+                {stats.subjects.length > 1 ? "s" : ""}
+              </small>
+            </div>
+            {stats.subjects.map((s2) => (
+              <div className="stat-tile" key={s2.subject}>
+                <span className="eyebrow">{s2.subject.toUpperCase()}</span>
+                <strong>{s2.average} %</strong>
+                <small>
+                  {s2.count} résultat{s2.count > 1 ? "s" : ""} · dernier :{" "}
+                  {percent(s2.latest.score, s2.latest.max)} %
+                </small>
+                <Chart series={s2.series} />
+              </div>
+            ))}
+          </section>
+          <p className="small muted">
+            Moyennes calculées en pourcentage, toutes notes pesant également.
+            Repères pour la famille, pas un bulletin officiel.
+          </p>
+          <div className="section-heading">
+            <h2>Détail des résultats</h2>
+          </div>
+          <div className="table-wrap">
+            <table className="grades-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Matière</th>
+                  <th>Intitulé</th>
+                  <th>Note</th>
+                  <th>%</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {grades.map((g) => (
+                  <tr key={g.id}>
+                    <td>
+                      {formatDate(g.date, { day: "numeric", month: "short" })}
+                    </td>
+                    <td>{g.subject}</td>
+                    <td>
+                      {g.title}
+                      {g.source === "examen" && (
+                        <span className="pill"> ENTRAÎNEMENT</span>
+                      )}
+                    </td>
+                    <td>
+                      {g.score} / {g.max}
+                    </td>
+                    <td>
+                      <strong>{percent(g.score, g.max)} %</strong>
+                    </td>
+                    <td className="row-actions">
+                      <button
+                        className="icon-button"
+                        aria-label={`Modifier ${g.title}`}
+                        onClick={() => setEdit(g)}
+                      >
+                        <Pencil size={15} />
+                      </button>
+                      {deleteId === g.id ? (
+                        <span className="delete-confirm">
+                          <button
+                            disabled={busy}
+                            onClick={async () => {
+                              if (
+                                await run(
+                                  () => api.remove("grades", g.id),
+                                  "Résultat supprimé.",
+                                )
+                              )
+                                setDeleteId("");
+                            }}
+                          >
+                            Supprimer
+                          </button>
+                          <button onClick={() => setDeleteId("")}>
+                            Garder
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          className="icon-button"
+                          aria-label={`Supprimer ${g.title}`}
+                          onClick={() => setDeleteId(g.id)}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </>
   );
 }

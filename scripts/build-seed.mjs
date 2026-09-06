@@ -23,6 +23,8 @@ const contentTables = [
   "events",
   "tutors",
   "tutor_availability",
+  "exams",
+  "exam_questions",
 ];
 let sql =
   "-- Fictitious learning content for local demonstration. Not production content.\n";

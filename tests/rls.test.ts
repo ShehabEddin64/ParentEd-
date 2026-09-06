@@ -293,7 +293,7 @@ describe.sequential("Migration V2 : tutorat, groupes, favoris, famille", () => {
     await actor(a);
     await expect(
       db.query(
-        "insert into bookings(tutor_id,child,subject,date,time,status) values ($1,'Lina','Maths','2026-09-10','09:00','confirmée')",
+        "insert into bookings(tutor_id,child,subject,date,time,status) values ($1,'Lina','Maths','2026-09-10','09:00','terminée')",
         [tutorId],
       ),
     ).rejects.toThrow(/row-level security/);
@@ -301,7 +301,7 @@ describe.sequential("Migration V2 : tutorat, groupes, favoris, famille", () => {
       db.query(
         "insert into bookings(tutor_id,child,subject,date,time) values ('90000000-0000-4000-8000-000000000003','Lina','Musique','2026-09-10','09:00')",
       ),
-    ).rejects.toThrow(/row-level security/);
+    ).rejects.toThrow(/row-level security|disponibilités/);
     booking = String(
       (
         await db.query(
@@ -617,6 +617,97 @@ describe.sequential(
           )
         )[0].count,
       ).toBe(1);
+    });
+  },
+);
+
+describe.sequential(
+  "Migration V4 : créneaux réels, examens, programme et notes",
+  () => {
+    const tutorId = "90000000-0000-4000-8000-000000000001";
+    it("confirme une réservation sur un créneau libre et refuse hors disponibilité ou déjà pris", async () => {
+      await actor(b);
+      await expect(
+        db.query(
+          "insert into bookings(tutor_id,child,subject,date,time,status) values ($1,'Yanis','Maths','2026-10-05','13:00','confirmée')",
+          [tutorId],
+        ),
+      ).rejects.toThrow(/disponibilités/);
+      await db.query(
+        "insert into bookings(tutor_id,child,subject,date,time,status) values ($1,'Yanis','Maths','2026-10-06','13:00','confirmée')",
+        [tutorId],
+      );
+      await actor(a);
+      await expect(
+        db.query(
+          "insert into bookings(tutor_id,child,subject,date,time,status) values ($1,'Lina','Maths','2026-10-06','13:00','confirmée')",
+          [tutorId],
+        ),
+      ).rejects.toThrow(/réservé/);
+      await db.query(
+        "insert into bookings(tutor_id,child,subject,date,time,status,weekly) values ($1,'Lina','Maths','2026-10-06','14:00','confirmée',true)",
+        [tutorId],
+      );
+      await actor(b);
+      await expect(
+        db.query(
+          "insert into bookings(tutor_id,child,subject,date,time,status) values ($1,'Yanis','Maths','2026-10-20','14:00','confirmée')",
+          [tutorId],
+        ),
+      ).rejects.toThrow(/réservé/);
+    });
+    it("publie les examens d’entraînement et garde tentatives, programme et notes dans la famille", async () => {
+      await actor(admin);
+      await db.exec(
+        "insert into exams(id,title,subject,published) values ('c0000000-0000-4000-8000-000000000099','Brouillon','Maths',false)",
+      );
+      await actor(a);
+      expect(
+        await rows("select * from exams where title='Brouillon'"),
+      ).toHaveLength(0);
+      expect((await rows("select * from exams")).length).toBeGreaterThanOrEqual(
+        3,
+      );
+      expect(
+        (await rows("select * from exam_questions")).length,
+      ).toBeGreaterThanOrEqual(10);
+      await expect(
+        db.exec("insert into exams(title,subject) values ('Pirate','X')"),
+      ).rejects.toThrow(/row-level security/);
+      await db.exec(
+        "insert into exam_attempts(exam_id,child,score,total,answers) values ('c0000000-0000-4000-8000-000000000001','Lina',5,6,'{1,2,1,1,0,0}')",
+      );
+      const cid = String(
+        (
+          await rows(
+            "insert into curricula(child,title) values ('Lina','Programme') returning id",
+          )
+        )[0].id,
+      );
+      await db.query(
+        "insert into curriculum_items(curriculum_id,subject,title,planned_date) values ($1,'Maths','Fractions','2026-09-08')",
+        [cid],
+      );
+      await db.exec(
+        "insert into grades(child,subject,title,score,max) values ('Lina','Maths','Quiz',8,10)",
+      );
+      await expect(
+        db.exec(
+          "insert into grades(child,subject,title,score,max) values ('Lina','Maths','Faux',12,10)",
+        ),
+      ).rejects.toThrow();
+      await actor(b);
+      expect(await rows("select * from exam_attempts")).toHaveLength(0);
+      expect(await rows("select * from curriculum_items")).toHaveLength(0);
+      expect(await rows("select * from grades")).toHaveLength(0);
+      await expect(
+        db.query(
+          "insert into curriculum_items(curriculum_id,subject,title) values ($1,'Maths','Intrus')",
+          [cid],
+        ),
+      ).rejects.toThrow(/row-level security/);
+      await actor(admin);
+      expect(await rows("select * from grades")).toHaveLength(0);
     });
   },
 );

@@ -10,6 +10,8 @@ import type {
   Tutor,
   TutorAvailability,
   Recurrence,
+  Exam,
+  ExamQuestion,
 } from "../domain";
 import {
   bookingStatusLabels,
@@ -29,10 +31,20 @@ type Kind =
   | "resources"
   | "groups"
   | "tutors"
-  | "tutor_availability";
+  | "tutor_availability"
+  | "exams"
+  | "exam_questions";
 type Tab = Kind | "questions" | "bookings" | "reports";
 type Editable =
-  Course | Lesson | Event | Resource | Group | Tutor | TutorAvailability;
+  | Course
+  | Lesson
+  | Event
+  | Resource
+  | Group
+  | Tutor
+  | TutorAvailability
+  | Exam
+  | ExamQuestion;
 const labels: Record<Tab, string> = {
   courses: "Cours",
   lessons: "Leçons",
@@ -41,6 +53,8 @@ const labels: Record<Tab, string> = {
   groups: "Groupes",
   tutors: "Tuteurs",
   tutor_availability: "Disponibilités",
+  exams: "Examens",
+  exam_questions: "Questions d’examen",
   questions: "Questions",
   bookings: "Séances",
   reports: "Signalements",
@@ -86,6 +100,10 @@ const fields: Record<Kind, string[]> = {
   groups: ["name", "description", "kind"],
   tutors: [
     "display_name",
+    "kind",
+    "slot_minutes",
+    "meeting_url",
+    "contact_email",
     "subjects",
     "qualifications",
     "bio",
@@ -96,6 +114,23 @@ const fields: Record<Kind, string[]> = {
     "published",
   ],
   tutor_availability: ["tutor_id", "weekday", "start_time", "end_time"],
+  exams: [
+    "title",
+    "subject",
+    "level",
+    "description",
+    "minutes",
+    "position",
+    "published",
+  ],
+  exam_questions: [
+    "exam_id",
+    "position",
+    "prompt",
+    "options",
+    "answer_index",
+    "explanation",
+  ],
 };
 const fieldLabels: Record<string, string> = {
   title: "Titre",
@@ -128,14 +163,25 @@ const fieldLabels: Record<string, string> = {
   url: "Lien officiel (HTTPS)",
   source: "Source",
   checked_at: "Date du relevé de la source",
-  kind: "Type de groupe",
+  kind: "Type",
   subjects: "Matières (séparées par des virgules)",
   qualifications: "Qualifications et références vérifiées",
   bio: "Présentation",
   rate_hint: "Tarif indicatif (facturé par le tuteur)",
   mode: "Mode",
   profile_id: "Identifiant du compte tuteur (UUID, facultatif)",
-  tutor_id: "Tuteur",
+  tutor_id: "Intervenant",
+  slot_minutes: "Durée d’un créneau",
+  meeting_url: "Lien de rencontre en ligne (HTTPS, facultatif)",
+  contact_email:
+    "Courriel de l’intervenant pour les confirmations (facultatif)",
+  subject: "Matière",
+  level: "Niveau (ex. Primaire · 4e année)",
+  prompt: "Question",
+  options: "Choix de réponse (un par ligne, 2 à 6)",
+  answer_index: "Numéro de la bonne réponse (1 = première ligne)",
+  explanation: "Explication affichée après correction",
+  exam_id: "Examen",
   weekday: "Jour",
   start_time: "Début",
   end_time: "Fin",
@@ -147,6 +193,9 @@ const textareas = [
   "template",
   "qualifications",
   "bio",
+  "prompt",
+  "options",
+  "explanation",
 ];
 const optionalFields = [
   "template",
@@ -159,6 +208,10 @@ const optionalFields = [
   "qualifications",
   "region",
   "description",
+  "meeting_url",
+  "contact_email",
+  "level",
+  "explanation",
 ];
 export function Admin({ data, api, run, busy }: Props) {
   const [tab, setTab] = useState<Tab>("courses");
@@ -264,7 +317,44 @@ export function Admin({ data, api, run, busy }: Props) {
           rate_hint: opt("rate_hint", 200),
           region: opt("region", 120),
           mode: String(f.get("mode")) as Tutor["mode"],
+          kind: String(f.get("kind")) as Tutor["kind"],
+          slot_minutes: Number(f.get("slot_minutes")) as Tutor["slot_minutes"],
+          meeting_url: https("meeting_url"),
+          contact_email: opt("contact_email", 200) || null,
           published: f.has("published"),
+        });
+      }
+      if (kind === "exams")
+        await api.save(kind, {
+          id,
+          title: text("title", 160),
+          subject: text("subject", 80),
+          level: opt("level", 80),
+          description: opt("description"),
+          minutes: Number(f.get("minutes")),
+          position: Number(f.get("position")),
+          published: f.has("published"),
+        });
+      if (kind === "exam_questions") {
+        const options = text("options")
+          .split(/\r?\n/)
+          .map((o) => o.trim())
+          .filter(Boolean);
+        const answer = Number(f.get("answer_index")) - 1;
+        if (options.length < 2 || options.length > 6)
+          throw new Error("Saisissez de 2 à 6 choix, un par ligne.");
+        if (!(answer >= 0 && answer < options.length))
+          throw new Error(
+            "Le numéro de la bonne réponse doit correspondre à une ligne.",
+          );
+        await api.save(kind, {
+          id,
+          exam_id: text("exam_id"),
+          position: Number(f.get("position")),
+          prompt: text("prompt", 2000),
+          options,
+          answer_index: answer,
+          explanation: opt("explanation", 2000),
         });
       }
       if (kind === "tutor_availability") {
@@ -288,6 +378,10 @@ export function Admin({ data, api, run, busy }: Props) {
   );
   const pending = data.lesson_questions.filter((q) => !q.answer).length;
   const summary = (row: Editable): string => {
+    if ("answer_index" in row)
+      return `${data.exams.find((e) => e.id === row.exam_id)?.title ?? "?"} · réponse ${row.answer_index + 1}`;
+    if ("published" in row && "subject" in row && "minutes" in row)
+      return `${row.subject}${row.level ? " · " + row.level : ""} · ${data.exam_questions.filter((q) => q.exam_id === row.id).length} questions · ${row.published ? "Publié" : "Brouillon"}`;
     if ("published" in row && "subjects" in row)
       return `${row.subjects.join(", ")} · ${row.published ? "Publié" : "Brouillon"}`;
     if ("published" in row && "organizer" in row)
@@ -308,7 +402,9 @@ export function Admin({ data, api, run, busy }: Props) {
         ? row.name
         : "display_name" in row
           ? row.display_name
-          : "Créneau";
+          : "prompt" in row
+            ? row.prompt.slice(0, 80)
+            : "Créneau";
   const select = (name: string, value: unknown) => {
     const options: Record<string, [string, string][]> = {
       course_id: data.courses.map((c) => [c.id, c.title]),
@@ -327,8 +423,21 @@ export function Admin({ data, api, run, busy }: Props) {
         recurrenceLabels[r],
       ]),
       weekday: weekdayNames.slice(1).map((d, i) => [String(i + 1), d]),
+      kind_tutor: [
+        ["tuteur", "Tuteur"],
+        ["conseiller", "Conseiller aux démarches"],
+        ["coach", "Coach parental"],
+      ],
+      slot_minutes: [
+        ["60", "60 minutes"],
+        ["30", "30 minutes"],
+        ["45", "45 minutes"],
+        ["90", "90 minutes"],
+      ],
+      exam_id: data.exams.map((e) => [e.id, e.title]),
     };
-    const list = options[name];
+    const list =
+      options[name === "kind" && tab === "tutors" ? "kind_tutor" : name];
     if (!list) return null;
     return (
       <select
@@ -456,7 +565,7 @@ export function Admin({ data, api, run, busy }: Props) {
                     }
                     defaultValue={String(
                       value ??
-                        (name === "position"
+                        (name === "position" || name === "answer_index"
                           ? 1
                           : name === "minutes"
                             ? 5

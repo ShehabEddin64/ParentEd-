@@ -11,6 +11,10 @@ import {
   NotebookPen,
   Info,
   Star,
+  Video,
+  Mail,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import type { Props } from "../App";
 import {
@@ -19,13 +23,16 @@ import {
   localDate,
   optional,
   required,
-  weekday,
+  shiftDate,
+  slotsFor,
+  tutorKindLabels,
   weekdayNames,
   averageRating,
   type Booking,
   type Tutor,
+  type Slot,
 } from "../domain";
-import { Empty, PageTitle } from "./ui";
+import { Empty, External, PageTitle } from "./ui";
 export function Tutoring(props: Props) {
   const { data, profile } = props;
   const mine = data.tutors.find((t) => t.profile_id === profile.id);
@@ -100,11 +107,159 @@ function Reviews({
     </div>
   );
 }
+/** Two-week slot calendar: pick a concrete free slot. */
+function SlotPicker({
+  tutor,
+  data,
+  from,
+  value,
+  onChange,
+}: {
+  tutor: Tutor;
+  data: Props["data"];
+  from: string;
+  value: Slot | null;
+  onChange: (s: Slot) => void;
+}) {
+  const [start, setStart] = useState(from);
+  const slots = slotsFor(
+    tutor,
+    data.tutor_availability,
+    data.bookings,
+    start,
+    14,
+  );
+  const days = [...new Set(slots.map((s) => s.date))];
+  return (
+    <div className="slot-picker">
+      <div className="calendar-toolbar">
+        <strong>
+          {formatDate(start, { day: "numeric", month: "long" })} →{" "}
+          {formatDate(shiftDate(start, 13), { day: "numeric", month: "long" })}
+        </strong>
+        <div className="calendar-controls">
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Deux semaines avant"
+            onClick={() => setStart(shiftDate(start, -14))}
+            disabled={start <= from}
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Deux semaines après"
+            onClick={() => setStart(shiftDate(start, 14))}
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      </div>
+      {!days.length ? (
+        <p className="small muted">
+          Aucun créneau sur ces deux semaines. Essayez les semaines suivantes.
+        </p>
+      ) : (
+        <div className="slot-days">
+          {days.map((d) => (
+            <div className="slot-day" key={d}>
+              <header>
+                <span>{formatDate(d, { weekday: "short" })}</span>
+                <strong>{Number(d.slice(-2))}</strong>
+                <small>{formatDate(d, { month: "short" })}</small>
+              </header>
+              {slots
+                .filter((s) => s.date === d)
+                .map((s) => (
+                  <button
+                    type="button"
+                    key={s.time}
+                    disabled={s.taken}
+                    className={`slot ${value?.date === s.date && value?.time === s.time ? "selected" : ""}`}
+                    onClick={() => onChange(s)}
+                    aria-pressed={
+                      value?.date === s.date && value?.time === s.time
+                    }
+                  >
+                    {s.time}
+                    {s.taken && <small>pris</small>}
+                  </button>
+                ))}
+            </div>
+          ))}
+        </div>
+      )}
+      <small className="muted">
+        Créneaux de {tutor.slot_minutes} minutes, calculés à partir des
+        disponibilités annoncées et des réservations existantes.
+      </small>
+    </div>
+  );
+}
 function FamilySpace({ data, profile, api, run, busy }: Props) {
+  const today = api.mode === "demo" ? "2026-09-07" : localDate();
+  const [kind, setKind] = useState<"tous" | Tutor["kind"]>("tous");
   const [subject, setSubject] = useState("Toutes");
   const [booking, setBooking] = useState<Tutor | null>(null);
+  const [slot, setSlot] = useState<Slot | null>(null);
   const [cancelId, setCancelId] = useState("");
   const [reviewId, setReviewId] = useState("");
+  const [emailed, setEmailed] = useState<Record<string, boolean>>({});
+  const published = data.tutors.filter((t) => t.published);
+  const tutors = published.filter(
+    (t) =>
+      (kind === "tous" || t.kind === kind) &&
+      (subject === "Toutes" || t.subjects.includes(subject)),
+  );
+  const subjects = [
+    "Toutes",
+    ...new Set(
+      published
+        .filter((t) => kind === "tous" || t.kind === kind)
+        .flatMap((t) => t.subjects),
+    ),
+  ];
+  const bookings = data.bookings
+    .filter((b) => b.family_id === profile.family_id)
+    .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!booking) return;
+    const f = new FormData(e.currentTarget);
+    if (!slot) {
+      await run(async () => {
+        throw new Error("Choisissez un créneau dans le calendrier.");
+      });
+      return;
+    }
+    const id = crypto.randomUUID();
+    const ok = await run(
+      () =>
+        api.save("bookings", {
+          id,
+          tutor_id: booking.id,
+          family_id: profile.family_id,
+          user_id: profile.id,
+          child: required(String(f.get("child")), 80),
+          subject: required(String(f.get("subject")), 80),
+          date: slot.date,
+          time: slot.time,
+          weekly: f.has("weekly"),
+          status: "confirmée",
+          note: optional(String(f.get("note")), 2000),
+          created_at: new Date().toISOString(),
+        }),
+      `Rendez-vous confirmé le ${formatDate(slot.date)} à ${slot.time}.`,
+    );
+    if (ok) {
+      setBooking(null);
+      setSlot(null);
+      const sent = await api.sendBookingEmail(id);
+      setEmailed((m) => ({ ...m, [id]: sent }));
+    }
+  };
   const submitReview = async (e: FormEvent<HTMLFormElement>, b: Booking) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
@@ -126,78 +281,30 @@ function FamilySpace({ data, profile, api, run, busy }: Props) {
     )
       setReviewId("");
   };
-  const tutors = data.tutors.filter(
-    (t) =>
-      t.published && (subject === "Toutes" || t.subjects.includes(subject)),
-  );
-  const subjects = [
-    "Toutes",
-    ...new Set(
-      data.tutors.filter((t) => t.published).flatMap((t) => t.subjects),
-    ),
-  ];
-  const bookings = data.bookings
-    .filter((b) => b.family_id === profile.family_id)
-    .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
-  const submit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!booking) return;
-    const f = new FormData(e.currentTarget);
-    const date = String(f.get("date"));
-    const day = weekday(date);
-    const slots = data.tutor_availability.filter(
-      (a) => a.tutor_id === booking.id,
-    );
-    if (slots.length && !slots.some((s) => s.weekday === day)) {
-      await run(async () => {
-        throw new Error(
-          `${booking.display_name} n’indique pas de disponibilité le ${weekdayNames[day].toLowerCase()}. Choisissez un autre jour.`,
-        );
-      });
-      return;
-    }
-    if (
-      await run(
-        () =>
-          api.save("bookings", {
-            id: crypto.randomUUID(),
-            tutor_id: booking.id,
-            family_id: profile.family_id,
-            user_id: profile.id,
-            child: required(String(f.get("child")), 80),
-            subject: required(String(f.get("subject")), 80),
-            date,
-            time: String(f.get("time")),
-            weekly: f.has("weekly"),
-            status: "demandée",
-            note: optional(String(f.get("note")), 2000),
-            created_at: new Date().toISOString(),
-          }),
-        "Demande envoyée. Le tuteur ou la tutrice confirmera le rendez-vous.",
-      )
-    )
-      setBooking(null);
-  };
   return (
     <>
       <PageTitle
         eyebrow="UN COUP DE MAIN, QUAND C’EST UTILE"
-        title="Tutorat complémentaire."
-        description="Un soutien ponctuel ou hebdomadaire dans certaines matières, comme l’aide extérieure d’un élève scolarisé. Le parent reste l’enseignant principal."
+        title="Rendez-vous et tutorat."
+        description="Réservez un créneau réel avec un tuteur, un conseiller aux démarches ou un coach parental. Le parent reste l’enseignant principal."
       />
       <div className="privacy-banner">
         <Info size={23} />
         <p>
-          Les tuteurs partenaires sont indépendants et facturent directement les
-          familles. ParentEd vérifie les qualifications annoncées, facilite la
-          réservation et recueille les comptes rendus. Un compte rendu est une
-          observation pédagogique, pas une évaluation officielle.
+          Les tuteurs et coachs partenaires sont indépendants et facturent
+          directement les familles; les rencontres avec un conseiller sont
+          comprises dans l’accompagnement. ParentEd vérifie les qualifications
+          annoncées, gère l’agenda et recueille les comptes rendus. Un compte
+          rendu est une observation pédagogique, pas une évaluation officielle.
         </p>
       </div>
       {booking && (
         <form className="editor form-grid" onSubmit={submit} key={booking.id}>
           <div className="section-heading span-2">
-            <h2>Demander une séance avec {booking.display_name}</h2>
+            <h2>
+              Réserver avec {booking.display_name} ·{" "}
+              {tutorKindLabels[booking.kind]}
+            </h2>
             <button
               type="button"
               className="text-button"
@@ -207,78 +314,85 @@ function FamilySpace({ data, profile, api, run, busy }: Props) {
             </button>
           </div>
           <label>
-            Enfant
+            {booking.kind === "tuteur" ? "Enfant" : "Pour qui ?"}
             <input
               name="child"
               list="children-booking"
               required
               maxLength={80}
-              defaultValue={data.children[0]?.name ?? ""}
+              defaultValue={
+                booking.kind === "tuteur"
+                  ? (data.children[0]?.name ?? "")
+                  : profile.display_name
+              }
             />
             <datalist id="children-booking">
               {data.children.map((c) => (
                 <option key={c.id} value={c.name} />
               ))}
+              <option value={profile.display_name} />
             </datalist>
           </label>
           <label>
-            Matière
+            Sujet
             <select name="subject" defaultValue={booking.subjects[0]}>
               {booking.subjects.map((s) => (
                 <option key={s}>{s}</option>
               ))}
             </select>
           </label>
-          <label>
-            Date de la première séance
-            <input
-              name="date"
-              type="date"
-              required
-              defaultValue={api.mode === "demo" ? "2026-09-10" : localDate()}
+          <div className="span-2">
+            <span className="eyebrow">CHOISIR UN CRÉNEAU</span>
+            <SlotPicker
+              tutor={booking}
+              data={data}
+              from={shiftDate(today, 1)}
+              value={slot}
+              onChange={setSlot}
             />
-          </label>
-          <label>
-            Heure
-            <input
-              name="time"
-              type="time"
-              required
-              defaultValue={
-                data.tutor_availability.find((a) => a.tutor_id === booking.id)
-                  ?.start_time ?? "10:00"
-              }
-            />
-          </label>
-          <label className="checkbox-label span-2">
-            <input type="checkbox" name="weekly" />
-            <Repeat size={16} /> Rendez-vous hebdomadaire, même jour et même
-            heure
-          </label>
+          </div>
+          {booking.kind === "tuteur" && (
+            <label className="checkbox-label span-2">
+              <input type="checkbox" name="weekly" />
+              <Repeat size={16} /> Rendez-vous hebdomadaire, même jour et même
+              heure
+            </label>
+          )}
           <label className="span-2">
-            Ce qui aiderait le tuteur à préparer (facultatif)
+            Ce qui aiderait à préparer (facultatif)
             <textarea
               name="note"
               maxLength={2000}
-              placeholder="Où l’enfant bloque, ce qu’il aime… Évitez les renseignements sensibles."
+              placeholder="Où l’enfant bloque, ce qu’il aime, votre question… Évitez les renseignements sensibles."
             />
           </label>
-          <div className="span-2 small muted">
-            Disponibilités annoncées :{" "}
-            <Availability tutor={booking} data={data} />
-          </div>
-          <button className="button primary" disabled={busy}>
-            Envoyer la demande <ArrowRight size={17} />
+          <p className="span-2 small muted">
+            {slot ? (
+              <>
+                Créneau choisi :{" "}
+                <strong>
+                  {formatDate(slot.date)} à {slot.time}
+                </strong>
+                . La réservation est confirmée immédiatement
+                {api.mode === "supabase"
+                  ? " et un courriel de confirmation est envoyé si le service de courriel est configuré."
+                  : "."}
+              </>
+            ) : (
+              "Sélectionnez un créneau libre ci-dessus."
+            )}
+          </p>
+          <button className="button primary" disabled={busy || !slot}>
+            Confirmer le rendez-vous <ArrowRight size={17} />
           </button>
         </form>
       )}
       <div className="section-heading">
-        <h2>Mes séances</h2>
+        <h2>Mes rendez-vous</h2>
       </div>
       {!bookings.length ? (
         <Empty>
-          Aucune séance demandée pour l’instant. Choisissez un tuteur
-          ci-dessous.
+          Aucun rendez-vous pour l’instant. Choisissez une personne ci-dessous.
         </Empty>
       ) : (
         <div className="booking-list">
@@ -291,14 +405,24 @@ function FamilySpace({ data, profile, api, run, busy }: Props) {
               <article className={`booking status-${b.status}`} key={b.id}>
                 <div className="booking-head">
                   <span className="pill">{bookingStatusLabels[b.status]}</span>
+                  {tutor && (
+                    <span className="pill">
+                      {tutorKindLabels[tutor.kind].toUpperCase()}
+                    </span>
+                  )}
                   {b.weekly && (
                     <span className="pill">
                       <Repeat size={11} /> HEBDOMADAIRE
                     </span>
                   )}
+                  {emailed[b.id] && (
+                    <span className="pill featured">
+                      <Mail size={11} /> COURRIEL ENVOYÉ
+                    </span>
+                  )}
                 </div>
                 <h3>
-                  {b.subject} avec {tutor?.display_name ?? "un tuteur"}
+                  {b.subject} avec {tutor?.display_name ?? "un intervenant"}
                 </h3>
                 <p className="small muted">
                   {b.child} ·{" "}
@@ -309,8 +433,14 @@ function FamilySpace({ data, profile, api, run, busy }: Props) {
                     year: "numeric",
                   })}{" "}
                   · {b.time}
+                  {tutor && ` · ${tutor.slot_minutes} min`}
                   {b.weekly && " · puis chaque semaine"}
                 </p>
+                {b.status === "confirmée" && tutor?.meeting_url && (
+                  <External url={tutor.meeting_url}>
+                    <Video size={15} /> Lien de la rencontre en ligne
+                  </External>
+                )}
                 {b.note && <p className="small">{b.note}</p>}
                 {reports.map((r) => (
                   <div className="answer" key={r.id}>
@@ -382,7 +512,7 @@ function FamilySpace({ data, profile, api, run, busy }: Props) {
                                   ...b,
                                   status: "annulée",
                                 }),
-                              "Séance annulée.",
+                              "Rendez-vous annulé.",
                             )
                           )
                             setCancelId("");
@@ -394,7 +524,7 @@ function FamilySpace({ data, profile, api, run, busy }: Props) {
                         className="text-button"
                         onClick={() => setCancelId("")}
                       >
-                        Garder la séance
+                        Garder le rendez-vous
                       </button>
                     </div>
                   ) : (
@@ -403,7 +533,7 @@ function FamilySpace({ data, profile, api, run, busy }: Props) {
                       onClick={() => setCancelId(b.id)}
                     >
                       <XCircle size={15} /> Annuler{" "}
-                      {b.weekly ? "la série" : "la séance"}
+                      {b.weekly ? "la série" : "le rendez-vous"}
                     </button>
                   ))}
               </article>
@@ -412,60 +542,100 @@ function FamilySpace({ data, profile, api, run, busy }: Props) {
         </div>
       )}
       <div className="section-heading">
-        <h2>Tuteurs partenaires</h2>
+        <h2>Prendre rendez-vous</h2>
       </div>
-      <div className="tabs" aria-label="Filtrer par matière">
-        {subjects.map((s) => (
-          <button
-            key={s}
-            className={subject === s ? "active" : ""}
-            onClick={() => setSubject(s)}
-          >
-            {s}
-          </button>
-        ))}
-      </div>
-      {!tutors.length && (
-        <Empty>Aucun tuteur pour cette matière pour le moment.</Empty>
-      )}
-      <div className="tutor-grid">
-        {tutors.map((t) => (
-          <article className="tutor-card" key={t.id}>
-            <div className="tutor-head">
-              <span className="avatar">{t.display_name[0]}</span>
-              <div>
-                <h3>{t.display_name}</h3>
-                <small>{t.subjects.join(" · ")}</small>
-              </div>
-            </div>
-            <p>{t.bio}</p>
-            <ul className="event-facts">
-              <li>
-                <GraduationCap size={16} />
-                {t.qualifications}
-              </li>
-              <li>
-                <MapPin size={16} />
-                {t.region || "Région à préciser"} · {t.mode}
-              </li>
-              {t.rate_hint && (
-                <li>
-                  <Info size={16} />
-                  {t.rate_hint}
-                </li>
-              )}
-            </ul>
-            <Availability tutor={t} data={data} />
+      <div className="filter-bar">
+        <div className="tabs" aria-label="Type d’intervenant">
+          {(["tous", "tuteur", "conseiller", "coach"] as const).map((k) => (
             <button
-              className="button primary"
-              onClick={() => setBooking(t)}
-              disabled={busy}
+              key={k}
+              className={kind === k ? "active" : ""}
+              onClick={() => {
+                setKind(k);
+                setSubject("Toutes");
+              }}
             >
-              <CalendarDays size={17} />
-              Demander une séance
+              {k === "tous" ? "Tous" : tutorKindLabels[k] + "s"}
             </button>
-          </article>
-        ))}
+          ))}
+        </div>
+        <select
+          aria-label="Sujet"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+        >
+          {subjects.map((s) => (
+            <option key={s}>{s}</option>
+          ))}
+        </select>
+      </div>
+      {!tutors.length && <Empty>Personne pour ce filtre pour le moment.</Empty>}
+      <div className="tutor-grid">
+        {tutors.map((t) => {
+          const free = slotsFor(
+            t,
+            data.tutor_availability,
+            data.bookings,
+            shiftDate(today, 1),
+            14,
+          ).filter((s) => !s.taken);
+          return (
+            <article className="tutor-card" key={t.id}>
+              <div className="tutor-head">
+                <span className="avatar">{t.display_name[0]}</span>
+                <div>
+                  <h3>{t.display_name}</h3>
+                  <small>
+                    {tutorKindLabels[t.kind]} · {t.subjects.join(" · ")}
+                  </small>
+                </div>
+              </div>
+              <p>{t.bio}</p>
+              <ul className="event-facts">
+                <li>
+                  <GraduationCap size={16} />
+                  {t.qualifications}
+                </li>
+                <li>
+                  <MapPin size={16} />
+                  {t.region || "Région à préciser"} · {t.mode}
+                  {t.meeting_url && (
+                    <>
+                      {" "}
+                      · <Video size={14} /> en ligne
+                    </>
+                  )}
+                </li>
+                {t.rate_hint && (
+                  <li>
+                    <Info size={16} />
+                    {t.rate_hint}
+                  </li>
+                )}
+              </ul>
+              <Availability tutor={t} data={data} />
+              <small className="muted">
+                {free.length
+                  ? `${free.length} créneau${free.length > 1 ? "x" : ""} libre${free.length > 1 ? "s" : ""} sur 14 jours`
+                  : "Complet sur 14 jours"}{" "}
+                · {t.slot_minutes} min
+              </small>
+              <Reviews data={data} tutorId={t.id} />
+              <button
+                className="button primary"
+                onClick={() => {
+                  setBooking(t);
+                  setSlot(null);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                disabled={busy}
+              >
+                <CalendarDays size={17} />
+                Choisir un créneau
+              </button>
+            </article>
+          );
+        })}
       </div>
     </>
   );
@@ -479,7 +649,7 @@ function TutorSpace({ data, api, run, busy, tutor }: Props & { tutor: Tutor }) {
   const setStatus = (b: Booking, status: Booking["status"]) =>
     run(
       () => api.save("bookings", { ...b, status }),
-      `Séance ${bookingStatusLabels[status].toLowerCase()}.`,
+      `Rendez-vous ${bookingStatusLabels[status].toLowerCase()}.`,
     );
   const saveReport = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -503,6 +673,7 @@ function TutorSpace({ data, api, run, busy, tutor }: Props & { tutor: Tutor }) {
   const saveProfile = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
+    const meeting = optional(String(f.get("meeting_url")), 300);
     if (
       await run(
         () =>
@@ -514,8 +685,14 @@ function TutorSpace({ data, api, run, busy, tutor }: Props & { tutor: Tutor }) {
             rate_hint: optional(String(f.get("rate_hint")), 200),
             region: optional(String(f.get("region")), 120),
             mode: String(f.get("mode")) as Tutor["mode"],
+            slot_minutes: Number(
+              f.get("slot_minutes"),
+            ) as Tutor["slot_minutes"],
+            meeting_url: meeting || null,
+            contact_email:
+              optional(String(f.get("contact_email")), 200) || null,
           }),
-        "Profil de tuteur mis à jour.",
+        "Profil mis à jour.",
       )
     )
       setEdit(false);
@@ -523,9 +700,9 @@ function TutorSpace({ data, api, run, busy, tutor }: Props & { tutor: Tutor }) {
   return (
     <>
       <PageTitle
-        eyebrow="ESPACE TUTEUR"
-        title={`Vos séances, ${tutor.display_name}.`}
-        description="Confirmez les demandes, tenez vos rendez-vous hebdomadaires et transmettez un compte rendu pédagogique aux familles."
+        eyebrow={`ESPACE ${tutorKindLabels[tutor.kind].toUpperCase()}`}
+        title={`Vos rendez-vous, ${tutor.display_name}.`}
+        description="Les familles réservent directement vos créneaux libres. Tenez vos rendez-vous, clôturez-les et transmettez un compte rendu."
         action={
           <button className="button secondary" onClick={() => setEdit(!edit)}>
             {edit ? "Fermer" : "Mon profil"}
@@ -565,6 +742,36 @@ function TutorSpace({ data, api, run, busy, tutor }: Props & { tutor: Tutor }) {
             </select>
           </label>
           <label>
+            Durée d’un créneau
+            <select
+              name="slot_minutes"
+              defaultValue={String(tutor.slot_minutes)}
+            >
+              {[30, 45, 60, 90].map((m) => (
+                <option key={m} value={m}>
+                  {m} minutes
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Lien de rencontre en ligne (HTTPS)
+            <input
+              name="meeting_url"
+              type="url"
+              defaultValue={tutor.meeting_url ?? ""}
+              placeholder="https://meet…"
+            />
+          </label>
+          <label>
+            Courriel pour les confirmations
+            <input
+              name="contact_email"
+              type="email"
+              defaultValue={tutor.contact_email ?? ""}
+            />
+          </label>
+          <label>
             Tarif indicatif (facturé par vous)
             <input
               name="rate_hint"
@@ -585,13 +792,20 @@ function TutorSpace({ data, api, run, busy, tutor }: Props & { tutor: Tutor }) {
             <textarea name="bio" defaultValue={tutor.bio} maxLength={2000} />
           </label>
           <p className="span-2 small muted">
-            Les matières et la publication sont gérées par l’équipe ParentEd.
+            Les matières, les disponibilités et la publication sont gérées avec
+            l’équipe ParentEd.
           </p>
           <button className="button primary" disabled={busy}>
             Enregistrer
           </button>
         </form>
       )}
+      <section className="editor">
+        <h2>Mes disponibilités</h2>
+        <Availability tutor={tutor} data={data} />
+        <h2>Avis des familles</h2>
+        <Reviews data={data} tutorId={tutor.id} limit={10} />
+      </section>
       {report && (
         <form className="editor" onSubmit={saveReport} key={report.id}>
           <div className="section-heading">
@@ -608,12 +822,12 @@ function TutorSpace({ data, api, run, busy, tutor }: Props & { tutor: Tutor }) {
             </button>
           </div>
           <label>
-            Observations pédagogiques et pistes pour la maison
+            Observations et pistes pour la maison
             <textarea
               name="body"
               required
               maxLength={5000}
-              placeholder="Ce que l’enfant a réussi, ce qui reste fragile, une idée à essayer en famille."
+              placeholder="Ce qui a été réussi, ce qui reste fragile, une idée à essayer en famille."
             />
           </label>
           <p className="small muted">
@@ -627,11 +841,7 @@ function TutorSpace({ data, api, run, busy, tutor }: Props & { tutor: Tutor }) {
           </div>
         </form>
       )}
-      <section className="editor">
-        <h2>Avis des familles</h2>
-        <Reviews data={data} tutorId={tutor.id} limit={10} />
-      </section>
-      {!bookings.length && <Empty>Aucune demande pour le moment.</Empty>}
+      {!bookings.length && <Empty>Aucun rendez-vous pour le moment.</Empty>}
       <div className="booking-list">
         {bookings.map((b) => {
           const reports = data.tutor_reports.filter(
@@ -668,31 +878,22 @@ function TutorSpace({ data, api, run, busy, tutor }: Props & { tutor: Tutor }) {
               ))}
               <div className="discussion-actions">
                 {b.status === "demandée" && (
-                  <>
-                    <button
-                      className="button primary"
-                      disabled={busy}
-                      onClick={() => setStatus(b, "confirmée")}
-                    >
-                      <CheckCircle2 size={16} /> Confirmer
-                    </button>
-                    <button
-                      className="text-button danger"
-                      disabled={busy}
-                      onClick={() => setStatus(b, "annulée")}
-                    >
-                      Refuser
-                    </button>
-                  </>
+                  <button
+                    className="button primary"
+                    disabled={busy}
+                    onClick={() => setStatus(b, "confirmée")}
+                  >
+                    <CheckCircle2 size={16} /> Confirmer
+                  </button>
                 )}
-                {b.status === "confirmée" && (
+                {["demandée", "confirmée"].includes(b.status) && (
                   <>
                     <button
                       className="button secondary"
                       disabled={busy}
                       onClick={() => setStatus(b, "terminée")}
                     >
-                      Marquer terminée
+                      Marquer terminé
                     </button>
                     <button
                       className="text-button danger"
