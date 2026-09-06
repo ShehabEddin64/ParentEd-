@@ -10,7 +10,7 @@ import {
   type Profile,
   type NotificationKind,
 } from "../domain";
-import type { AuthEvent, Gateway } from "./gateway";
+import type { AuthEvent, Gateway, LeadInput } from "./gateway";
 const key = "parented-demo-v4";
 const sessionKey = "parented-demo-session";
 type Row = Tables[Table];
@@ -78,6 +78,16 @@ export class DemoGateway implements Gateway {
         (p) => p.id === this.storage.getItem(sessionKey),
       ) ?? null
     );
+  }
+  async submitLead(lead: LeadInput) {
+    const data = this.read();
+    data.leads.push({
+      id: crypto.randomUUID(),
+      ...lead,
+      handled: false,
+      created_at: new Date().toISOString(),
+    });
+    this.write(data);
   }
   async login(email: string) {
     const p = this.read().profiles.find((p) => p.id === accounts[email]);
@@ -161,6 +171,8 @@ export class DemoGateway implements Gateway {
       }
       case "assistant_usage":
         return (row as { user_id: string }).user_id === p.id || admin;
+      case "leads":
+        return admin;
       case "progress":
       case "registrations":
       case "favorites":
@@ -214,6 +226,7 @@ export class DemoGateway implements Gateway {
       case "exams":
       case "exam_questions":
       case "app_settings":
+      case "leads":
         return admin;
       case "events": {
         const e = row as Tables["events"];

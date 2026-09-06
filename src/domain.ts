@@ -319,6 +319,16 @@ export type Note = {
   body: string;
   created_at: string;
 };
+export type Lead = {
+  id: string;
+  kind: "appel" | "liste";
+  name: string;
+  email: string;
+  message: string;
+  preferred: string;
+  handled: boolean;
+  created_at: string;
+};
 export type AppSetting = {
   id: string;
   key: string;
@@ -373,6 +383,7 @@ export type Tables = {
   grades: Grade;
   assistant_usage: AssistantUsage;
   app_settings: AppSetting;
+  leads: Lead;
 };
 export type Table = keyof Tables;
 export type Data = { [K in Table]: Tables[K][] };
@@ -416,6 +427,7 @@ export const tableNames: Table[] = [
   "grades",
   "assistant_usage",
   "app_settings",
+  "leads",
 ];
 /** Views: loaded, never written. */
 export const readOnlyTables: Table[] = [
@@ -423,6 +435,7 @@ export const readOnlyTables: Table[] = [
   "event_counts",
   "assistant_usage",
   "app_settings",
+  "leads",
 ];
 /** Tables whose rows belong to a family or a person; never shared. */
 export const privateTables: Table[] = [

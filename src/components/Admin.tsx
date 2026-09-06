@@ -34,7 +34,7 @@ type Kind =
   | "tutor_availability"
   | "exams"
   | "exam_questions";
-type Tab = Kind | "questions" | "bookings" | "reports";
+type Tab = Kind | "questions" | "bookings" | "reports" | "leads";
 type Editable =
   | Course
   | Lesson
@@ -58,6 +58,7 @@ const labels: Record<Tab, string> = {
   questions: "Questions",
   bookings: "Séances",
   reports: "Signalements",
+  leads: "Demandes de contact",
 };
 const fields: Record<Kind, string[]> = {
   courses: ["title", "description", "category", "position", "published"],
@@ -490,6 +491,9 @@ export function Admin({ data, api, run, busy }: Props) {
             {k === "reports" && ` (${data.reports.length})`}
             {k === "questions" && pending > 0 && ` (${pending})`}
             {k === "events" && proposals.length > 0 && ` (${proposals.length})`}
+            {k === "leads" &&
+              data.leads.filter((l) => !l.handled).length > 0 &&
+              ` (${data.leads.filter((l) => !l.handled).length})`}
           </button>
         ))}
       </div>
@@ -723,6 +727,57 @@ export function Admin({ data, api, run, busy }: Props) {
                 </form>
               );
             })}
+        </div>
+      )}
+      {tab === "leads" && (
+        <div>
+          <p className="small muted">
+            Demandes reçues depuis la page d’accueil publique : appels à
+            planifier et liste des familles fondatrices. Répondre par courriel,
+            puis marquer comme traité.
+          </p>
+          {!data.leads.length && <Empty>Aucune demande pour le moment.</Empty>}
+          <div className="admin-list">
+            {[...data.leads]
+              .sort(
+                (a, b) =>
+                  Number(a.handled) - Number(b.handled) ||
+                  b.created_at.localeCompare(a.created_at),
+              )
+              .map((l) => (
+                <article key={l.id} className={l.handled ? "done" : ""}>
+                  <div>
+                    <strong>
+                      {l.name || "Sans prénom"} · {l.email}
+                    </strong>
+                    <small>
+                      {l.kind === "appel" ? "Appel demandé" : "Liste d’attente"}{" "}
+                      · {new Date(l.created_at).toLocaleString("fr-CA")}
+                      {l.preferred && ` · ${l.preferred}`}
+                    </small>
+                    {l.message && <p className="small">{l.message}</p>}
+                  </div>
+                  <a
+                    className="button secondary"
+                    href={`mailto:${l.email}?subject=${encodeURIComponent("ParentEd · votre demande")}`}
+                  >
+                    Répondre
+                  </a>
+                  <button
+                    className="text-button"
+                    disabled={busy}
+                    onClick={() =>
+                      run(
+                        () => api.patch("leads", l.id, { handled: !l.handled }),
+                        l.handled ? "Demande rouverte." : "Demande traitée.",
+                      )
+                    }
+                  >
+                    {l.handled ? "Rouvrir" : "Marquer traité"}
+                  </button>
+                </article>
+              ))}
+          </div>
         </div>
       )}
       {tab === "bookings" && (

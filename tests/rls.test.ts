@@ -813,3 +813,39 @@ describe.sequential(
     });
   },
 );
+describe.sequential("Migration V8 : demandes de contact", () => {
+  it("accepte une demande anonyme, la limite par courriel, et la réserve à l’équipe", async () => {
+    await actor(null);
+    await db.exec(
+      "insert into leads(kind,name,email,message) values ('appel','Test','Famille@Exemple.test','Bonjour')",
+    );
+    await expect(
+      db.exec(
+        "insert into leads(kind,email) values ('liste','pas-un-courriel')",
+      ),
+    ).rejects.toThrow();
+    await db.exec(
+      "insert into leads(kind,email) values ('liste','famille@exemple.test')",
+    );
+    await db.exec(
+      "insert into leads(kind,email) values ('liste','famille@exemple.test')",
+    );
+    await expect(
+      db.exec(
+        "insert into leads(kind,email) values ('liste','famille@exemple.test')",
+      ),
+    ).rejects.toThrow(/déjà envoyé/);
+    await expect(rows("select * from leads")).rejects.toThrow(
+      /permission denied/,
+    );
+    await actor(a);
+    expect(await rows("select * from leads")).toHaveLength(0);
+    await actor(admin);
+    const all = await rows("select * from leads");
+    expect(all).toHaveLength(3);
+    expect(all[0].email).toBe("famille@exemple.test");
+    expect(
+      (await db.query("update leads set handled=true returning *")).rows,
+    ).toHaveLength(3);
+  });
+});

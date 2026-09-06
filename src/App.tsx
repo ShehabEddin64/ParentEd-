@@ -37,6 +37,7 @@ import { Exams } from "./components/Exams";
 import { Dashboard } from "./components/Dashboard";
 import { Assistant } from "./components/Assistant";
 import { Legal } from "./components/Legal";
+import { Landing } from "./components/Landing";
 import { legalLinks } from "./legal";
 import { pages } from "./images";
 import { Admin } from "./components/Admin";
@@ -205,6 +206,7 @@ export default function App() {
       setApi(provider);
       setProfile(p);
       setData(d);
+      window.location.hash = "accueil";
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -258,7 +260,7 @@ export default function App() {
       sessionStorage.removeItem("parented-mode");
       if (api.mode === "demo")
         setApi(configured ? new SupabaseGateway() : null);
-      window.location.hash = "accueil";
+      window.location.hash = "";
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -280,6 +282,21 @@ export default function App() {
         </a>
         <Legal slug={legalSlug()} back={profile ? "#accueil" : "#"} />
       </div>
+    );
+  if (!profile && page !== "connexion")
+    return (
+      <Landing
+        demoEnabled={demoEnabled}
+        mode={api ? api.mode : "none"}
+        submitLead={async (lead) => {
+          const provider = api ?? (demoEnabled ? new DemoGateway() : null);
+          if (!provider)
+            throw new Error(
+              "Le site n’est pas encore relié à sa base : écrivez-nous par courriel.",
+            );
+          await provider.submitLead(lead);
+        }}
+      />
     );
   if (!profile)
     return (
@@ -697,7 +714,9 @@ function Login({
   return (
     <div className="login">
       <section className="login-story">
-        <img src="/parented-logo.png" alt="parentEd" />
+        <a href="#" aria-label="Retour à l’accueil public">
+          <img src="/parented-logo.png" alt="parentEd" />
+        </a>
         <div>
           <span className="eyebrow">Pour les parents qui font apprendre</span>
           <h1>

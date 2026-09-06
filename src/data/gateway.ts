@@ -1,6 +1,15 @@
 import type { Data, Profile, Table, Tables } from "../domain";
 export type AuthEvent = "recovery" | "signed_out";
+export type LeadInput = {
+  kind: "appel" | "liste";
+  name: string;
+  email: string;
+  message: string;
+  preferred: string;
+};
 export interface Gateway {
+  /** Public contact request from the landing page; works without a session. */
+  submitLead(lead: LeadInput): Promise<void>;
   mode: "demo" | "supabase";
   session(): Promise<Profile | null>;
   login(email: string, password: string): Promise<Profile>;

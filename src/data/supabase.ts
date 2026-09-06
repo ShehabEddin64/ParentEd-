@@ -9,7 +9,7 @@ import {
   type Table,
   type Tables,
 } from "../domain";
-import type { AuthEvent, Gateway } from "./gateway";
+import type { AuthEvent, Gateway, LeadInput } from "./gateway";
 import { termsVersion } from "../legal";
 export const configured = Boolean(
   import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY,
@@ -30,6 +30,17 @@ export class SupabaseGateway implements Gateway {
       import.meta.env.VITE_SUPABASE_URL,
       import.meta.env.VITE_SUPABASE_ANON_KEY,
     );
+  }
+  async submitLead(lead: LeadInput) {
+    const { error } = await this.client.from("leads").insert(lead);
+    if (error)
+      throw new Error(
+        error.code === "P0001"
+          ? error.message
+          : error.code === "23514"
+            ? "Vérifiez l’adresse courriel."
+            : "L’envoi a échoué. Réessayez ou écrivez-nous par courriel.",
+      );
   }
   private async profile(id: string): Promise<Profile> {
     const { data, error } = await this.client

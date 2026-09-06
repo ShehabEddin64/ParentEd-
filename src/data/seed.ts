@@ -1490,6 +1490,19 @@ export const seed: Data = {
     },
   ],
   assistant_usage: [],
+  leads: [
+    {
+      id: "d0000000-0000-4000-8000-000000000001",
+      kind: "appel",
+      name: "Nadège (fictif)",
+      email: "nadege@exemple.test",
+      message:
+        "Nous commençons en janvier avec nos deux filles; j’aimerais comprendre les démarches.",
+      preferred: "En soirée, après 19 h",
+      handled: false,
+      created_at: "2026-09-05T20:10:00Z",
+    },
+  ],
   app_settings: [
     {
       id: "assistant_enabled",

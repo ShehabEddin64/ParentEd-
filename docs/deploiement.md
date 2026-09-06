@@ -166,6 +166,10 @@ Modèle : `claude-opus-5` par défaut (environ 5 $ US par million de jetons entr
 
 L’assistant n’envoie que la question et les contenus publics de ParentEd (jamais les données familiales) et rappelle que les démarches officielles relèvent des sources gouvernementales.
 
+## 7 quinquies. Page d’accueil publique et demandes de contact
+
+La racine du site est la page publique; `#connexion` mène à la connexion. Les formulaires « Réserver un appel » et « Liste des familles fondatrices » écrivent dans la table `leads` (migration V8) sans compte, avec un plafond de 3 demandes par courriel et 300 par jour. L’équipe les retrouve dans Administration → Demandes de contact et répond par courriel. Personnaliser le nombre de places fondatrices et le tarif prévu dans `src/components/Landing.tsx`.
+
 ## 8. Sécurité et exploitation
 
 - `public/_headers` publie une CSP qui autorise `https://*.supabase.co` et les tuiles `tile.openstreetmap.org` pour la carte : un domaine Supabase personnalisé ou un autre fournisseur de tuiles exige d’ajuster `connect-src` / `img-src`.

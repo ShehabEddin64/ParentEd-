@@ -63,6 +63,11 @@ Mis à jour le 6 septembre 2026 (troisième itération).
 - Mentions légales dans l’application (`#legal/...`, accessibles sans connexion) : politique de confidentialité (Loi 25), politique sur les témoins, conditions d’utilisation, paiement/annulation/remboursement (phase sans paiement). Liens sur la page de connexion et le pied de page; case d’acceptation obligatoire à l’inscription, version enregistrée dans les métadonnées du compte. Champs « À COMPLÉTER » mis en évidence.
 - `docs/juridique.md` : liste de contrôle Loi 25, LPC/OPC, contenus, IA, accessibilité, en préparation de la page d’accueil publique.
 
+### Dixième itération : page d’accueil publique
+- Page d’accueil à la racine du site (la connexion passe sur `#connexion`) : héros animé en couches (parallaxe, collines, soleil, oiseaux, brume, feuilles, avions en papier, étoiles, enfants dessinés en vectoriel qui jouent et apprennent), motifs griffonnés, sections Problème, Solution (six volets avec photos), Un mardi type, Offre (pile de valeur, bonus fondateurs, engagement, 50 familles fondatrices), Tarif (49 $ prévu, aucun paiement actuel, comparatif), FAQ, formulaire d’appel et liste d’attente, pied de page avec mentions légales.
+- Migration V8 : table `leads` (insertion anonyme limitée à 3 par courriel et 300 par jour, lecture réservée à l’équipe); onglet « Demandes de contact » dans l’administration avec réponse par courriel et statut traité.
+- Animations respectueuses de `prefers-reduced-motion`.
+
 ## Vérifications exécutées
 
 - `npm test` : **43 tests réussis**, dont **28 tests PostgreSQL/PGlite** exécutant les six migrations (tutorat, propositions, favoris, groupes, questions, familles, profils, annuaire, messages, notifications, j’aime, avis).
