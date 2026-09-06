@@ -56,6 +56,7 @@ npm run check:cloudflare
 | Rendez-vous et tutorat | Annuaire de **tuteurs, conseillers aux démarches et coachs parentaux** (matières, qualifications, tarif indicatif, mode, avis et note moyenne), **calendrier de créneaux réels** calculés à partir des disponibilités, réservation confirmée immédiatement (la base refuse un créneau pris ou hors disponibilité), lien de rencontre en ligne, **courriel de confirmation** via une fonction Supabase + Resend (clé à fournir), demande de séance ponctuelle ou hebdomadaire, confirmation par le tuteur, séances affichées dans la semaine familiale, compte rendu pédagogique visible par la famille, vue de coordination pour l’équipe |
 | Organisation familiale | Semaine par enfant, plan hebdomadaire d’intentions, fiches enfants, livres et ressources associés, portfolio privé (notes datées et fichiers avec contexte), **programme** (import CSV ou collé, répartition automatique dans le calendrier, % couvert par matière), **résultats** (notes saisies + examens d’entraînement, moyennes et courbes par matière), export JSON |
 | Préparation aux examens | Examens d’entraînement en ligne, chronométrés et corrigés avec explications; résultat enregistré par enfant; ressources de préparation; création par l’administration |
+| Accueil | Tableau de bord à widgets personnalisables (prochain rendez-vous, agenda, météo Open-Meteo, progrès des enfants, programme, cours, rencontre, communauté, portfolio, raccourcis); tableau de bord d’équipe pour l’administration |
 | Comptes | Connexion, inscription, confirmation par courriel, réinitialisation du mot de passe; **profil public** modifiable (prénom, ville, intérêts, présentation, visibilité sur la carte); rôles parent / tuteur / admin nommés en base |
 
 ## Architecture
@@ -73,6 +74,7 @@ Hébergement : React + TypeScript + Vite servi en SPA par Cloudflare Workers Sta
 - Chargement plafonné à 1 000 lignes par table, sans pagination ni temps réel.
 - Une famille par compte; pas d’invitation d’un second parent.
 - Rappels par fichier .ics et notifications dans l’application; courriel de confirmation des rendez-vous seulement si la fonction `booking-email` est déployée avec une clé Resend.
+- Météo : Open-Meteo (gratuit, sans clé), position au centre de la ville du profil.
 - Carte : tuiles OpenStreetMap chargées depuis leur serveur public (politique d’usage à respecter; prévoir un fournisseur de tuiles dédié si le trafic augmente). Aucune géolocalisation en direct; les familles sont placées au centre de leur ville, sur choix explicite.
 - Vidéos : liens externes, pas d’hébergement.
 - Tutorat : aucune facturation dans l’application; le tuteur facture directement la famille. Le rôle tuteur est attribué par un opérateur.

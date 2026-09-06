@@ -44,6 +44,14 @@ Mis à jour le 6 septembre 2026 (troisième itération).
 - Accueil administration : statistiques (signalements, propositions, questions, profils à publier, familles, profils complétés, adhésions, discussions, inscriptions, rendez-vous et examens du mois), familles par ville, prochaines rencontres.
 - Contenus : 3 examens supplémentaires (16 questions), 4 rencontres de plus (robotique, randonnée, club de lecture mensuel, journée sciences), membre Youssef (père de deux garçons).
 
+### Sixième itération : tableau de bord à widgets, animations
+- Accueil parent et tuteur en **widgets** (prochain rendez-vous avec compte à rebours et lien de rencontre, météo Open-Meteo de la ville du profil, raccourcis, agenda de la semaine avec jours cliquables, progrès des enfants en anneaux et courbes, programme par matière, cours en cours, prochaine rencontre, communauté, portfolio). Chaque widget se masque et se réordonne; le choix est mémorisé sur l’appareil.
+- Accueil administration : liste « À traiter », graphique d’activité sur 8 semaines (discussions, rendez-vous, nouveaux membres), indicateurs animés, familles par ville, prochaines rencontres, dernières discussions.
+- Animations discrètes : apparition en cascade des cartes et widgets, anneaux et barres qui se remplissent, survols; désactivées avec `prefers-reduced-motion`.
+- Ressources : correction de l’affichage des cartes (photo au-dessus, étoile en coin).
+- Rencontres de démonstration réduites à cinq.
+- CSP : `api.open-meteo.com` autorisé pour la météo.
+
 ## Vérifications exécutées
 
 - `npm test` : **39 tests réussis**, dont **26 tests PostgreSQL/PGlite** exécutant les quatre migrations (tutorat, propositions, favoris, groupes, questions, familles, profils, annuaire, messages, notifications, j’aime, avis).

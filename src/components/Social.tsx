@@ -104,15 +104,15 @@ export function Resources({ data, profile, api, run, busy }: Props) {
       <div className="resource-grid">
         {rows.map((r) => (
           <article className="resource-card" key={r.id}>
+            <div className="card-photo">
+              <img
+                className="photo"
+                src={photoFor("resource", r.category + " " + r.title, r.id)}
+                alt=""
+                loading="lazy"
+              />
+            </div>
             <div className="resource-top">
-              <div className="card-photo">
-                <img
-                  className="photo"
-                  src={photoFor("resource", r.category + " " + r.title, r.id)}
-                  alt=""
-                  loading="lazy"
-                />
-              </div>
               <button
                 className={`icon-button star ${favorite(r.id) ? "on" : ""}`}
                 aria-pressed={Boolean(favorite(r.id))}
