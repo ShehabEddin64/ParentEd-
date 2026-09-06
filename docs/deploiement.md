@@ -15,7 +15,7 @@ Le fichier **`supabase/parented-complet.sql`** contient tout : tables, fonctions
 2. Coller l’intégralité de `supabase/parented-complet.sql`, cliquer **Run**. Le script est enveloppé dans une transaction : soit tout passe, soit rien n’est appliqué.
 3. Si vous ne voulez **pas** des contenus fictifs (Nadia, Karim, rencontres de démonstration…), supprimez la section « Contenus de démonstration fictifs » avant d’exécuter, ou exécutez seulement les deux migrations de `supabase/migrations/` dans l’ordre.
 
-Base déjà migrée avec la première version ? N’exécutez que `supabase/migrations/202609060002_parented_v2.sql`.
+Base déjà migrée ? N’exécutez que les migrations manquantes de `supabase/migrations/`, dans l’ordre (par exemple `202609060003_parented_v3.sql` si les deux premières sont déjà passées). Chaque migration ne s’exécute qu’une fois.
 
 Régénérer le fichier complet après toute modification des migrations ou du seed :
 
@@ -117,7 +117,7 @@ Workers & Pages → `parented` → Settings → **Builds** → connecter le dép
 
 ## 8. Sécurité et exploitation
 
-- `public/_headers` publie une CSP qui autorise seulement `https://*.supabase.co` : un domaine Supabase personnalisé exige d’ajuster `connect-src`.
+- `public/_headers` publie une CSP qui autorise `https://*.supabase.co` et les tuiles `tile.openstreetmap.org` pour la carte : un domaine Supabase personnalisé ou un autre fournisseur de tuiles exige d’ajuster `connect-src` / `img-src`.
 - Les fichiers du portfolio vont dans le bucket privé `family-documents` (5 Mo, PDF/PNG/JPEG). Aucune URL publique n’existe.
 - Sauvegardes : activer les sauvegardes du projet Supabase (Pro) ou suivre `docs/sauvegarde-et-restauration.md`.
 - Chargement plafonné à 1 000 lignes par table : convenable pour un pilote, à paginer avant une montée en charge.

@@ -136,6 +136,17 @@ export class SupabaseGateway implements Gateway {
           "Enregistrement impossible. Réessayez après avoir vérifié votre connexion.",
       );
   }
+  async patch<K extends Table>(t: K, id: string, changes: Partial<Tables[K]>) {
+    const { error } = await this.client
+      .from(t)
+      .update(changes as Record<string, unknown>)
+      .eq("id", id);
+    if (error)
+      throw new Error(
+        messages[error.code] ??
+          "Modification impossible. Réessayez après avoir vérifié votre connexion.",
+      );
+  }
   async remove(t: Table, id: string) {
     const { error } = await this.client.from(t).delete().eq("id", id);
     if (error) throw new Error("Suppression impossible. Réessayez.");

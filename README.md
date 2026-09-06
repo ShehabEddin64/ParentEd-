@@ -41,8 +41,8 @@ npm run format:check
 npm run check:cloudflare
 ```
 
-- 11 tests métier et adaptateur de démonstration : persistance, isolation entre familles, tutorat, propositions, récurrence des rencontres, fichiers iCalendar.
-- 19 tests exécutent **les deux migrations dans PostgreSQL via PGlite** : RLS parent/admin/tuteur, familles, fichiers, bookings, comptes rendus, favoris, groupes, questions, propositions.
+- 13 tests métier et adaptateur de démonstration : persistance, isolation entre familles, tutorat, propositions, récurrence des rencontres, fichiers iCalendar, messages, notifications, profil.
+- 24 tests exécutent **les trois migrations dans PostgreSQL via PGlite** : RLS parent/admin/tuteur, familles, fichiers, bookings, comptes rendus, favoris, groupes, questions, propositions, profils, annuaire sans family_id, messages, notifications par déclencheurs, j’aime, avis.
 - Auth et Storage sont représentés par des schémas minimaux dans ces tests : ils valident les règles SQL, pas GoTrue/PostgREST/Storage en bout en bout. La recette sur Supabase réel ([docs/recette.md](docs/recette.md)) reste obligatoire avant un pilote.
 
 ## Fonctionnalités
@@ -51,18 +51,18 @@ npm run check:cloudflare
 | --- | --- |
 | Formation des parents | 4 cours, leçons avec exercice, modèle réutilisable (copie et .txt), lien vidéo optionnel, note personnelle, questions à l’équipe avec réponses publiques, progression persistante, administration complète |
 | Ressources officielles | Bibliothèque par étape, recherche, favoris, source et date de vérification |
-| Communauté | Discussions, réponses, groupes régionaux et thématiques (rejoindre, filtrer, publier dans un groupe), signalement et modération |
-| Rencontres | Liste et calendrier, filtres région / semaine ou week-end / gratuit / mes inscriptions, annonces à la une, récurrence hebdomadaire, bimensuelle ou mensuelle, propositions des membres vérifiées par l’équipe, rappel .ics, lien vers une carte externe |
-| Tutorat complémentaire | Annuaire de tuteurs (matières, qualifications, tarif indicatif, mode), disponibilités, demande de séance ponctuelle ou hebdomadaire, confirmation par le tuteur, séances affichées dans la semaine familiale, compte rendu pédagogique visible par la famille, vue de coordination pour l’équipe |
+| Communauté | Discussions avec « J’aime », épinglage et modification, groupes régionaux et thématiques, **annuaire des membres** (ville, intérêts, âges des enfants, présentation), **carte interactive** des familles, rencontres et tuteurs (OpenStreetMap, position au centre-ville seulement, opt-in), **messages privés**, **notifications** en application, signalement et modération |
+| Rencontres | Liste, calendrier et **carte**, filtres région / semaine ou week-end / gratuit / mes inscriptions, nombre de familles inscrites, annonces à la une, récurrence hebdomadaire, bimensuelle ou mensuelle, propositions des membres avec choix du lieu sur la carte, vérifiées par l’équipe, rappel .ics |
+| Tutorat complémentaire | Annuaire de tuteurs (matières, qualifications, tarif indicatif, mode, **avis et note moyenne des familles**), disponibilités, demande de séance ponctuelle ou hebdomadaire, confirmation par le tuteur, séances affichées dans la semaine familiale, compte rendu pédagogique visible par la famille, vue de coordination pour l’équipe |
 | Organisation familiale | Semaine par enfant, plan hebdomadaire d’intentions, fiches enfants, livres et ressources associés, portfolio privé (notes datées et fichiers avec contexte), export JSON |
-| Comptes | Connexion, inscription, confirmation par courriel, réinitialisation du mot de passe; rôles parent / tuteur / admin nommés en base |
+| Comptes | Connexion, inscription, confirmation par courriel, réinitialisation du mot de passe; **profil public** modifiable (prénom, ville, intérêts, présentation, visibilité sur la carte); rôles parent / tuteur / admin nommés en base |
 
 ## Architecture
 
 - `src/domain.ts` : types, règles métier, récurrence, iCalendar.
 - `src/data/gateway.ts` : contrat de données; `supabase.ts` seuls appels Supabase; `demo.ts` simulateur local avec les mêmes règles d’accès; `seed.ts` données fictives.
-- `src/components/` : Courses, Family, Social (ressources, communauté, rencontres), Tutoring, Admin.
-- `supabase/migrations/` : deux migrations versionnées; `supabase/parented-complet.sql` généré par `npm run sql:bundle`.
+- `src/components/` : Courses, Family, Social (ressources, rencontres), Community (discussions, annuaire, carte, messages), MapView (Leaflet), Profile, Tutoring, Admin.
+- `supabase/migrations/` : trois migrations versionnées; `supabase/parented-complet.sql` généré par `npm run sql:bundle`.
 - `tests/` : métier et SQL. `scripts/` : seed, comptes locaux, bundle SQL.
 
 Hébergement : React + TypeScript + Vite servi en SPA par Cloudflare Workers Static Assets (`wrangler.jsonc`); appels authentifiés directement vers Supabase, contrôlés par RLS. En-têtes de sécurité et CSP dans `public/_headers`.
@@ -71,8 +71,8 @@ Hébergement : React + TypeScript + Vite servi en SPA par Cloudflare Workers Sta
 
 - Chargement plafonné à 1 000 lignes par table, sans pagination ni temps réel.
 - Une famille par compte; pas d’invitation d’un second parent.
-- Rappels par fichier .ics seulement : pas de courriel ou de notification automatique.
-- Carte : lien externe par rencontre, pas de carte embarquée.
+- Rappels par fichier .ics et notifications dans l’application; pas de courriel automatique.
+- Carte : tuiles OpenStreetMap chargées depuis leur serveur public (politique d’usage à respecter; prévoir un fournisseur de tuiles dédié si le trafic augmente). Aucune géolocalisation en direct; les familles sont placées au centre de leur ville, sur choix explicite.
 - Vidéos : liens externes, pas d’hébergement.
 - Tutorat : aucune facturation dans l’application; le tuteur facture directement la famille. Le rôle tuteur est attribué par un opérateur.
 - Contenus pédagogiques fictifs à relire avant un vrai lancement.

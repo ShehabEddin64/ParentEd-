@@ -70,6 +70,8 @@ const fields: Record<Kind, string[]> = {
     "recurrence",
     "recurrence_until",
     "map_url",
+    "lat",
+    "lng",
     "featured",
     "published",
   ],
@@ -121,6 +123,8 @@ const fieldLabels: Record<string, string> = {
   recurrence: "Récurrence",
   recurrence_until: "Récurrence jusqu’au (facultatif)",
   map_url: "Lien carte (HTTPS, facultatif)",
+  lat: "Latitude (facultatif, ex. 45.5019)",
+  lng: "Longitude (facultatif, ex. -73.5674)",
   url: "Lien officiel (HTTPS)",
   source: "Source",
   checked_at: "Date du relevé de la source",
@@ -214,6 +218,8 @@ export function Admin({ data, api, run, busy }: Props) {
           recurrence: String(f.get("recurrence")) as Recurrence,
           recurrence_until: opt("recurrence_until") || null,
           map_url: https("map_url"),
+          lat: opt("lat") ? Number(opt("lat")) : null,
+          lng: opt("lng") ? Number(opt("lng")) : null,
           featured: f.has("featured"),
           published: f.has("published"),
           created_by: (edit as Partial<Event> | null)?.created_by ?? null,
@@ -434,7 +440,14 @@ export function Admin({ data, api, run, busy }: Props) {
                               ? "url"
                               : "text"
                     }
-                    min={name === "minutes" ? 1 : 0}
+                    min={
+                      name === "minutes"
+                        ? 1
+                        : ["lat", "lng"].includes(name)
+                          ? -180
+                          : 0
+                    }
+                    step={["lat", "lng"].includes(name) ? "any" : undefined}
                     max={name === "minutes" ? 180 : undefined}
                     maxLength={
                       ["title", "display_name", "name"].includes(name)

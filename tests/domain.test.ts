@@ -250,3 +250,88 @@ describe("Tutorat, groupes et portfolio en démonstration", () => {
     expect((await api.load()).events.map((e) => e.id)).toContain(draft.id);
   });
 });
+describe("Communauté en démonstration : messages, notifications, profil", () => {
+  it("échange des messages privés, notifie et marque comme lu; l’annuaire ne contient pas family_id", async () => {
+    const storage = new MemoryStorage();
+    const api = new DemoGateway(storage);
+    await api.login("sami@demo.parented.test");
+    await api.save("messages", {
+      id: "m1",
+      sender_id: ids.other,
+      recipient_id: ids.parent,
+      body: "Bonjour !",
+      created_at: new Date().toISOString(),
+      read_at: null,
+    });
+    await expect(
+      api.save("messages", {
+        id: "m2",
+        sender_id: ids.parent,
+        recipient_id: ids.other,
+        body: "Usurpé",
+        created_at: "",
+        read_at: null,
+      }),
+    ).rejects.toThrow("Accès refusé");
+    await api.logout();
+    await api.login("amelie@demo.parented.test");
+    const mine = await api.load();
+    expect(mine.messages.map((m) => m.id)).toContain("m1");
+    expect(
+      mine.notifications.filter((n) => n.kind === "message" && !n.read_at)
+        .length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(mine.members.length).toBeGreaterThanOrEqual(4);
+    expect(Object.keys(mine.members[0])).not.toContain("family_id");
+    await api.patch("messages", "m1", { read_at: new Date().toISOString() });
+    await api.patch("profiles", ids.parent, {
+      city: "Laval",
+      lat: 45.6,
+      lng: -73.7,
+    });
+    await expect(
+      api.patch("profiles", ids.parent, { role: "admin" } as never),
+    ).rejects.toThrow("Accès refusé");
+    await expect(
+      api.patch("profiles", ids.other, { city: "X" }),
+    ).rejects.toThrow("Accès refusé");
+    await api.logout();
+    await api.login("admin@demo.parented.test");
+    expect((await api.load()).messages).toHaveLength(0);
+    expect(
+      (await api.load()).members.find((m) => m.id === ids.parent)?.city,
+    ).toBe("Laval");
+  });
+  it("aime une discussion une seule fois, notifie l’auteur et refuse l’auto-épinglage", async () => {
+    const api = new DemoGateway(new MemoryStorage());
+    await api.login("amelie@demo.parented.test");
+    const post = seed.posts.find((p) => p.user_id === ids.other)!;
+    await api.save("post_likes", {
+      id: "l1",
+      post_id: post.id,
+      user_id: ids.parent,
+    });
+    await api.save("post_likes", {
+      id: "l2",
+      post_id: post.id,
+      user_id: ids.parent,
+    });
+    expect(
+      (await api.load()).post_likes.filter(
+        (l) => l.user_id === ids.parent && l.post_id === post.id,
+      ),
+    ).toHaveLength(1);
+    await expect(api.patch("posts", post.id, { pinned: true })).rejects.toThrow(
+      "Accès refusé",
+    );
+    await api.logout();
+    await api.login("sami@demo.parented.test");
+    expect(
+      (await api.load()).notifications.some((n) => n.kind === "like"),
+    ).toBe(true);
+    await api.patch("posts", post.id, { body: "Modifié" });
+    await expect(api.patch("posts", post.id, { pinned: true })).rejects.toThrow(
+      "Accès refusé",
+    );
+  });
+});

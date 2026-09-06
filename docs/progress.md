@@ -1,6 +1,6 @@
 # Avancement ParentEd
 
-Mis à jour le 6 septembre 2026 (seconde itération).
+Mis à jour le 6 septembre 2026 (troisième itération).
 
 ## Réalisé
 
@@ -19,9 +19,20 @@ Mis à jour le 6 septembre 2026 (seconde itération).
 - **Migration** `202609060002_parented_v2.sql`, seed régénéré, script `npm run sql:bundle` produisant `supabase/parented-complet.sql`, script de comptes locaux étendu (quatre comptes, liaison du tuteur), `npm run deploy`.
 - **Documentation** : `docs/deploiement.md` (Supabase, Auth, Cloudflare, rôles, dépannage), README, scénario jury et recette mis à jour.
 
+### Troisième itération : une vraie communauté
+- **Profils membres** : ville (liste de villes du Québec, position au centre-ville), présentation, âges des enfants sans prénom, intérêts, visibilité sur la carte; page « Mon profil ». Vue `members` sans `family_id`; mise à jour limitée par droits de colonnes (rôle et famille immuables).
+- **Annuaire** avec recherche et filtres ville / intérêt; « Familles près de chez vous » sur l’accueil et dans la communauté.
+- **Carte interactive** (Leaflet + OpenStreetMap, sans compte ni clé) : familles agrégées par ville, rencontres à venir, tuteurs par région; panneau de détail avec actions; vue carte des rencontres; choix du lieu d’une proposition en cliquant sur la carte; coordonnées dans l’administration.
+- **Messages privés** entre membres, conversations, accusé de lecture.
+- **Notifications** en application, produites par des déclencheurs SQL : réponse à ma discussion, j’aime, message reçu, demande et statut de séance, compte rendu, question répondue, rencontre publiée. Cloche avec compteur, « tout marquer lu ».
+- **Discussions** : j’aime, épinglage par l’équipe, modification par l’auteur, catégorie « Rencontres et sorties », dernière activité.
+- **Rencontres** : nombre de familles inscrites (vue agrégée, inscriptions individuelles toujours privées).
+- **Tutorat** : avis des familles après une séance terminée, note moyenne sur les fiches, avis visibles par le tuteur.
+- Migration `202609060003_parented_v3.sql`, seed et bundle SQL régénérés, comptes de démonstration Fatima et Marc, 37 tests.
+
 ## Vérifications exécutées
 
-- `npm test` : **30 tests réussis**, dont **19 tests PostgreSQL/PGlite** exécutant les deux migrations (dont tutorat, propositions, favoris, groupes, questions, familles).
+- `npm test` : **37 tests réussis**, dont **24 tests PostgreSQL/PGlite** exécutant les trois migrations (tutorat, propositions, favoris, groupes, questions, familles, profils, annuaire, messages, notifications, j’aime, avis).
 - `npm run build` et `tsc -b` réussis; `npm run format:check` réussi; `wrangler deploy --dry-run` réussi, sans publication.
 - Navigateur (Vite 5173, ordinateur 1280 px et mobile 375 px) : accueil, tutorat, rencontres avec annonce à la une et récurrence, communauté avec groupes, semaine avec plan hebdomadaire et séance de tutorat, leçon avec modèle/note/questions, portfolio; flux exécutés : demande de séance (refus d’un jour sans disponibilité, puis acceptation), favori, adhésion à un groupe, proposition de rencontre visible par l’administration, espace tutrice Nadia avec ses séances.
 

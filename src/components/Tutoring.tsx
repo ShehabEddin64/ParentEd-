@@ -10,6 +10,7 @@ import {
   XCircle,
   NotebookPen,
   Info,
+  Star,
 } from "lucide-react";
 import type { Props } from "../App";
 import {
@@ -20,6 +21,7 @@ import {
   required,
   weekday,
   weekdayNames,
+  averageRating,
   type Booking,
   type Tutor,
 } from "../domain";
@@ -52,10 +54,78 @@ function Availability({ tutor, data }: { tutor: Tutor; data: Props["data"] }) {
     </ul>
   );
 }
+function Stars({ value, size = 14 }: { value: number; size?: number }) {
+  return (
+    <span className="stars" aria-label={`${value} sur 5`}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          size={size}
+          fill={n <= Math.round(value) ? "currentColor" : "none"}
+        />
+      ))}
+    </span>
+  );
+}
+function Reviews({
+  data,
+  tutorId,
+  limit = 2,
+}: {
+  data: Props["data"];
+  tutorId: string;
+  limit?: number;
+}) {
+  const reviews = data.tutor_reviews
+    .filter((r) => r.tutor_id === tutorId)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const avg = averageRating(reviews);
+  if (!avg)
+    return <small className="muted">Pas encore d’avis de familles.</small>;
+  return (
+    <div className="reviews">
+      <div className="review-summary">
+        <Stars value={avg} />
+        <strong>{avg}</strong>
+        <small className="muted">
+          · {reviews.length} avis de famille{reviews.length > 1 ? "s" : ""}
+        </small>
+      </div>
+      {reviews.slice(0, limit).map((r) => (
+        <blockquote key={r.id}>
+          <Stars value={r.rating} size={11} /> <span>{r.body}</span>
+          <small className="muted"> — {r.author}</small>
+        </blockquote>
+      ))}
+    </div>
+  );
+}
 function FamilySpace({ data, profile, api, run, busy }: Props) {
   const [subject, setSubject] = useState("Toutes");
   const [booking, setBooking] = useState<Tutor | null>(null);
   const [cancelId, setCancelId] = useState("");
+  const [reviewId, setReviewId] = useState("");
+  const submitReview = async (e: FormEvent<HTMLFormElement>, b: Booking) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    if (
+      await run(
+        () =>
+          api.save("tutor_reviews", {
+            id: crypto.randomUUID(),
+            tutor_id: b.tutor_id,
+            booking_id: b.id,
+            user_id: profile.id,
+            author: profile.display_name,
+            rating: Number(f.get("rating")),
+            body: optional(String(f.get("body")), 2000),
+            created_at: new Date().toISOString(),
+          }),
+        "Merci pour votre avis ! Il aide les autres familles.",
+      )
+    )
+      setReviewId("");
+  };
   const tutors = data.tutors.filter(
     (t) =>
       t.published && (subject === "Toutes" || t.subjects.includes(subject)),
@@ -252,6 +322,52 @@ function FamilySpace({ data, profile, api, run, busy }: Props) {
                     </small>
                   </div>
                 ))}
+                {b.status === "terminée" &&
+                  !data.tutor_reviews.some((r) => r.booking_id === b.id) &&
+                  (reviewId === b.id ? (
+                    <form
+                      className="review-form"
+                      onSubmit={(e) => submitReview(e, b)}
+                    >
+                      <label>
+                        Votre note
+                        <select name="rating" defaultValue="5">
+                          {[5, 4, 3, 2, 1].map((n) => (
+                            <option key={n} value={n}>
+                              {n} / 5
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Un mot pour les autres familles (facultatif)
+                        <textarea
+                          name="body"
+                          maxLength={2000}
+                          placeholder="Ce qui a aidé votre enfant, le style du tuteur…"
+                        />
+                      </label>
+                      <div className="discussion-actions">
+                        <button className="button primary" disabled={busy}>
+                          Publier mon avis
+                        </button>
+                        <button
+                          type="button"
+                          className="text-button"
+                          onClick={() => setReviewId("")}
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <button
+                      className="text-button"
+                      onClick={() => setReviewId(b.id)}
+                    >
+                      <Star size={15} /> Laisser un avis
+                    </button>
+                  ))}
                 {["demandée", "confirmée"].includes(b.status) &&
                   (cancelId === b.id ? (
                     <div className="discussion-actions">
@@ -511,6 +627,10 @@ function TutorSpace({ data, api, run, busy, tutor }: Props & { tutor: Tutor }) {
           </div>
         </form>
       )}
+      <section className="editor">
+        <h2>Avis des familles</h2>
+        <Reviews data={data} tutorId={tutor.id} limit={10} />
+      </section>
       {!bookings.length && <Empty>Aucune demande pour le moment.</Empty>}
       <div className="booking-list">
         {bookings.map((b) => {

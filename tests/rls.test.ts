@@ -451,3 +451,172 @@ describe.sequential("Migration V2 : tutorat, groupes, favoris, famille", () => {
     ).toHaveLength(1);
   });
 });
+describe.sequential(
+  "Migration V3 : profils, annuaire, messages, notifications, avis",
+  () => {
+    it("laisse chacun modifier son profil public, jamais son rôle ni sa famille", async () => {
+      await actor(a);
+      expect(
+        (
+          await db.query(
+            "update profiles set city='Montréal', lat=45.5, lng=-73.5, bio='Bonjour', interests=array['Lecture'], show_on_map=true where id=$1 returning city",
+            [a],
+          )
+        ).rows,
+      ).toHaveLength(1);
+      await expect(
+        db.query("update profiles set role='admin' where id=$1", [a]),
+      ).rejects.toThrow(/permission denied/);
+      await expect(
+        db.query("update profiles set family_id=$1 where id=$2", [fb, a]),
+      ).rejects.toThrow(/permission denied/);
+      expect(
+        (
+          await db.query(
+            "update profiles set city='Intrus' where id=$1 returning *",
+            [b],
+          )
+        ).rows,
+      ).toHaveLength(0);
+    });
+    it("expose l’annuaire sans family_id et à tous les membres", async () => {
+      await actor(b);
+      const members = await rows("select * from members order by display_name");
+      expect(members.length).toBeGreaterThanOrEqual(3);
+      expect(Object.keys(members[0])).not.toContain("family_id");
+      expect(members.find((m) => m.id === a)?.city).toBe("Montréal");
+      expect(await rows("select * from profiles")).toHaveLength(1);
+    });
+    it("réserve les messages aux deux personnes et notifie le destinataire", async () => {
+      await actor(a);
+      await expect(
+        db.query(
+          "insert into messages(recipient_id,body) values ($1,'à moi-même')",
+          [a],
+        ),
+      ).rejects.toThrow();
+      await db.query(
+        "insert into messages(recipient_id,body) values ($1,'Bonjour Sami')",
+        [b],
+      );
+      await actor(admin);
+      expect(await rows("select * from messages")).toHaveLength(0);
+      await actor(b);
+      const inbox = await rows("select * from messages");
+      expect(inbox).toHaveLength(1);
+      expect(
+        (await db.query("update messages set read_at=now() returning *")).rows,
+      ).toHaveLength(1);
+      const notes = await rows(
+        "select * from notifications where kind='message'",
+      );
+      expect(notes).toHaveLength(1);
+      expect(String(notes[0].title)).toContain("Amélie");
+      await actor(a);
+      expect(
+        await rows("select * from notifications where kind='message'"),
+      ).toHaveLength(0);
+      await expect(
+        db.exec(
+          "insert into notifications(user_id,kind,title) values ('" +
+            a +
+            "','x','forgé')",
+        ),
+      ).rejects.toThrow(/permission denied|row-level security/);
+    });
+    it("notifie l’auteur d’une discussion, permet les j’aime uniques et interdit l’auto-épinglage", async () => {
+      await actor(a);
+      await db.exec(
+        "insert into posts(id,title,body,category) values ('60000000-0000-4000-8000-000000000098','Sortie','Qui vient ?','Rencontres et sorties')",
+      );
+      await actor(b);
+      await db.exec(
+        "insert into replies(post_id,body) values ('60000000-0000-4000-8000-000000000098','Moi !')",
+      );
+      await db.exec(
+        "insert into post_likes(post_id) values ('60000000-0000-4000-8000-000000000098')",
+      );
+      await expect(
+        db.exec(
+          "insert into post_likes(post_id) values ('60000000-0000-4000-8000-000000000098')",
+        ),
+      ).rejects.toThrow(/unique/);
+      expect(
+        (
+          await db.query(
+            "update posts set pinned=true where id='60000000-0000-4000-8000-000000000098' returning *",
+          )
+        ).rows,
+      ).toHaveLength(0);
+      await actor(a);
+      const notes = await rows(
+        "select kind from notifications order by created_at",
+      );
+      expect(notes.map((n) => n.kind)).toEqual(
+        expect.arrayContaining(["reply", "like"]),
+      );
+      expect(
+        (
+          await db.query(
+            "update posts set body='Qui vient samedi ?' where id='60000000-0000-4000-8000-000000000098' returning *",
+          )
+        ).rows,
+      ).toHaveLength(1);
+      await expect(
+        db.exec(
+          "update posts set pinned=true where id='60000000-0000-4000-8000-000000000098'",
+        ),
+      ).rejects.toThrow(/row-level security/);
+      await actor(admin);
+      expect(
+        (
+          await db.query(
+            "update posts set pinned=true where id='60000000-0000-4000-8000-000000000098' returning *",
+          )
+        ).rows,
+      ).toHaveLength(1);
+    });
+    it("n’accepte un avis qu’après une séance terminée et compte les inscrits", async () => {
+      const tutorId = "90000000-0000-4000-8000-000000000001";
+      await actor(a);
+      const booking = String(
+        (
+          await db.query(
+            "insert into bookings(tutor_id,child,subject,date,time) values ($1,'Lina','Maths','2026-09-24','09:00') returning id",
+            [tutorId],
+          )
+        ).rows[0].id,
+      );
+      await expect(
+        db.query(
+          "insert into tutor_reviews(tutor_id,booking_id,rating,body) values ($1,$2,5,'Top')",
+          [tutorId, booking],
+        ),
+      ).rejects.toThrow(/row-level security/);
+      await actor("10000000-0000-4000-8000-000000000004");
+      await db.query("update bookings set status='terminée' where id=$1", [
+        booking,
+      ]);
+      await actor(a);
+      await db.query(
+        "insert into tutor_reviews(tutor_id,booking_id,rating,body) values ($1,$2,5,'Top')",
+        [tutorId, booking],
+      );
+      await actor(b);
+      const review = (await rows("select * from tutor_reviews"))[0];
+      expect(review.author).toBe("Amélie");
+      await db.exec(
+        "insert into registrations(event_id) values ('70000000-0000-4000-8000-000000000001')",
+      );
+      await actor(admin);
+      expect(await rows("select * from registrations")).toHaveLength(0);
+      expect(
+        (
+          await rows(
+            "select * from event_counts where event_id='70000000-0000-4000-8000-000000000001'",
+          )
+        )[0].count,
+      ).toBe(1);
+    });
+  },
+);

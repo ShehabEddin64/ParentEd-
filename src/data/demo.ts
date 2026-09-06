@@ -1,14 +1,16 @@
 import { seed, ids } from "./seed";
 import {
   tableNames,
+  readOnlyTables,
   validateFile,
   type Data,
   type Table,
   type Tables,
   type Profile,
+  type NotificationKind,
 } from "../domain";
 import type { AuthEvent, Gateway } from "./gateway";
-const key = "parented-demo-v2";
+const key = "parented-demo-v3";
 const sessionKey = "parented-demo-session";
 type Row = Tables[Table];
 const accounts: Record<string, string> = {
@@ -25,7 +27,19 @@ const personalUnique: Partial<Record<Table, string>> = {
   favorites: "resource_id",
   group_members: "group_id",
   lesson_notes: "lesson_id",
+  post_likes: "post_id",
+  tutor_reviews: "booking_id",
 };
+const profileFields = [
+  "display_name",
+  "city",
+  "lat",
+  "lng",
+  "bio",
+  "children_ages",
+  "interests",
+  "show_on_map",
+];
 const notAvailable = () =>
   Promise.reject(
     new Error(
@@ -126,10 +140,15 @@ export class DemoGateway implements Gateway {
       }
       case "reports":
         return (row as Tables["reports"]).user_id === p.id || admin;
+      case "messages": {
+        const m = row as Tables["messages"];
+        return m.sender_id === p.id || m.recipient_id === p.id;
+      }
       case "progress":
       case "registrations":
       case "favorites":
       case "lesson_notes":
+      case "notifications":
         return (row as { user_id: string }).user_id === p.id;
       default:
         if ("family_id" in row) return row.family_id === p.family_id;
@@ -140,12 +159,23 @@ export class DemoGateway implements Gateway {
   async load() {
     const p = await this.profile();
     const data = this.read();
-    return Object.fromEntries(
+    const out = Object.fromEntries(
       tableNames.map((t) => [
         t,
         data[t].filter((row) => this.visible(t, row, p, data)),
       ]),
     ) as Data;
+    // Views: public directory without family_id, and participant counts.
+    out.members = data.profiles.map(({ family_id: _f, ...m }) => m);
+    const counts = new Map<string, number>();
+    for (const r of data.registrations)
+      counts.set(r.event_id, (counts.get(r.event_id) ?? 0) + 1);
+    out.event_counts = [...counts].map(([event_id, count]) => ({
+      id: event_id,
+      event_id,
+      count,
+    }));
+    return out;
   }
   private permitted(
     t: Table,
@@ -156,6 +186,7 @@ export class DemoGateway implements Gateway {
     previous?: Row,
   ): boolean {
     const admin = p.role === "admin";
+    if (readOnlyTables.includes(t)) return false;
     switch (t) {
       case "profiles":
         return false;
@@ -194,18 +225,52 @@ export class DemoGateway implements Gateway {
           admin ||
           this.tutorOf(data, (row as Tables["tutor_reports"]).tutor_id, p)
         );
+      case "tutor_reviews": {
+        const r = row as Tables["tutor_reviews"];
+        if (operation === "delete") return r.user_id === p.id || admin;
+        if (previous) return false;
+        return (
+          r.user_id === p.id &&
+          data.bookings.some(
+            (b) =>
+              b.id === r.booking_id &&
+              b.tutor_id === r.tutor_id &&
+              b.user_id === p.id &&
+              b.status === "terminée",
+          )
+        );
+      }
       case "lesson_questions": {
         const q = row as Tables["lesson_questions"];
         if (operation === "delete") return q.user_id === p.id || admin;
         if (previous) return admin;
         return q.user_id === p.id && q.answer === null;
       }
-      case "group_members":
+      case "posts": {
+        const post = row as Tables["posts"];
+        if (operation === "delete") return post.user_id === p.id || admin;
+        if (admin) return true;
+        if (post.user_id !== p.id) return false;
         return (
-          (row as Tables["group_members"]).user_id === p.id ||
-          (operation === "delete" && admin)
+          !previous || (previous as Tables["posts"]).pinned === post.pinned
         );
-      case "posts":
+      }
+      case "messages": {
+        const m = row as Tables["messages"];
+        if (operation === "delete") return m.sender_id === p.id;
+        if (previous) return m.recipient_id === p.id;
+        return m.sender_id === p.id && m.recipient_id !== p.id;
+      }
+      case "notifications":
+        return (
+          Boolean(previous) && (row as Tables["notifications"]).user_id === p.id
+        );
+      case "group_members":
+      case "post_likes":
+        return (
+          (row as { user_id: string }).user_id === p.id ||
+          (operation === "delete" && admin && t === "group_members")
+        );
       case "replies":
       case "reports":
         return (
@@ -216,6 +281,157 @@ export class DemoGateway implements Gateway {
         if ("family_id" in row) return row.family_id === p.family_id;
         if ("user_id" in row) return row.user_id === p.id;
         return false;
+    }
+  }
+  /** Mirrors the SQL notification triggers. Never notifies the acting person. */
+  private notify(
+    data: Data,
+    actor: Profile,
+    uid: string | null | undefined,
+    kind: NotificationKind,
+    title: string,
+    body: string,
+    link: string,
+  ) {
+    if (!uid || uid === actor.id) return;
+    data.notifications.push({
+      id: crypto.randomUUID(),
+      user_id: uid,
+      kind,
+      title,
+      body: body.slice(0, 200),
+      link,
+      created_at: new Date().toISOString(),
+      read_at: null,
+    });
+  }
+  private triggers<K extends Table>(
+    data: Data,
+    p: Profile,
+    t: K,
+    row: Tables[K],
+    old?: Tables[K],
+  ) {
+    const name = (id: string | null) =>
+      data.profiles.find((x) => x.id === id)?.display_name ?? "Un membre";
+    if (t === "replies" && !old) {
+      const r = row as Tables["replies"];
+      const post = data.posts.find((x) => x.id === r.post_id);
+      if (post)
+        this.notify(
+          data,
+          p,
+          post.user_id,
+          "reply",
+          `${r.author} a répondu à « ${post.title} »`,
+          r.body,
+          "#communaute/" + post.id,
+        );
+    }
+    if (t === "post_likes" && !old) {
+      const l = row as Tables["post_likes"];
+      const post = data.posts.find((x) => x.id === l.post_id);
+      if (post)
+        this.notify(
+          data,
+          p,
+          post.user_id,
+          "like",
+          `${name(l.user_id)} aime « ${post.title} »`,
+          "",
+          "#communaute/" + post.id,
+        );
+    }
+    if (t === "messages" && !old) {
+      const m = row as Tables["messages"];
+      this.notify(
+        data,
+        p,
+        m.recipient_id,
+        "message",
+        `Nouveau message de ${name(m.sender_id)}`,
+        m.body,
+        "#communaute/messages/" + m.sender_id,
+      );
+    }
+    if (t === "bookings") {
+      const b = row as Tables["bookings"];
+      const tutor = data.tutors.find((x) => x.id === b.tutor_id);
+      if (!old)
+        this.notify(
+          data,
+          p,
+          tutor?.profile_id,
+          "booking",
+          `Nouvelle demande de séance · ${b.subject}`,
+          `${b.child} · ${b.date} ${b.time}`,
+          "#tutorat",
+        );
+      else if ((old as Tables["bookings"]).status !== b.status) {
+        this.notify(
+          data,
+          p,
+          b.user_id,
+          "booking",
+          `Séance ${b.status} · ${b.subject} avec ${tutor?.display_name ?? "votre tuteur"}`,
+          `${b.date} ${b.time}`,
+          "#tutorat",
+        );
+        this.notify(
+          data,
+          p,
+          tutor?.profile_id,
+          "booking",
+          `Séance ${b.status} · ${b.subject}`,
+          `${b.child} · ${b.date}`,
+          "#tutorat",
+        );
+      }
+    }
+    if (t === "tutor_reports" && !old) {
+      const r = row as Tables["tutor_reports"];
+      const b = data.bookings.find((x) => x.id === r.booking_id);
+      if (b)
+        this.notify(
+          data,
+          p,
+          b.user_id,
+          "report",
+          `Compte rendu reçu · ${b.subject}`,
+          r.body,
+          "#tutorat",
+        );
+    }
+    if (t === "lesson_questions" && old) {
+      const q = row as Tables["lesson_questions"];
+      const lesson = data.lessons.find((l) => l.id === q.lesson_id);
+      if (
+        q.answer &&
+        q.answer !== (old as Tables["lesson_questions"]).answer &&
+        lesson
+      )
+        this.notify(
+          data,
+          p,
+          q.user_id,
+          "answer",
+          "L’équipe a répondu à votre question",
+          lesson.title,
+          "#cours/" + lesson.course_id,
+        );
+    }
+    if (t === "events" && old) {
+      const e = row as Tables["events"];
+      if (e.published && !(old as Tables["events"]).published)
+        this.notify(
+          data,
+          p,
+          e.created_by,
+          "event",
+          "Votre rencontre est publiée",
+          e.title,
+          "#evenements",
+        );
     }
   }
   async save<K extends Table>(t: K, row: Tables[K]) {
@@ -254,6 +470,27 @@ export class DemoGateway implements Gateway {
     const i = rows.findIndex((r) => r.id === row.id);
     if (i < 0) rows.push(row);
     else rows[i] = row;
+    this.triggers(data, p, t, row, old as Tables[K] | undefined);
+    this.write(data);
+  }
+  async patch<K extends Table>(t: K, id: string, changes: Partial<Tables[K]>) {
+    const p = await this.profile();
+    const data = this.read();
+    const rows = data[t] as Tables[K][];
+    const i = rows.findIndex((r) => r.id === id);
+    if (i < 0) throw new Error("Élément introuvable.");
+    const merged = { ...rows[i], ...changes, id };
+    if (t === "profiles") {
+      if (
+        id !== p.id ||
+        Object.keys(changes).some((k) => !profileFields.includes(k))
+      )
+        throw new Error("Accès refusé.");
+    } else if (!this.permitted(t, merged, p, "save", data, rows[i]))
+      throw new Error("Accès refusé.");
+    const old = rows[i];
+    rows[i] = merged;
+    this.triggers(data, p, t, merged, old);
     this.write(data);
   }
   async remove(t: Table, id: string) {
@@ -276,6 +513,7 @@ export class DemoGateway implements Gateway {
     if (t === "posts") {
       drop("replies", "post_id");
       drop("reports", "post_id");
+      drop("post_likes", "post_id");
     }
     if (t === "courses") drop("lessons", "course_id");
     if (t === "lessons") {
@@ -293,8 +531,12 @@ export class DemoGateway implements Gateway {
     if (t === "tutors") {
       drop("tutor_availability", "tutor_id");
       drop("bookings", "tutor_id");
+      drop("tutor_reviews", "tutor_id");
     }
-    if (t === "bookings") drop("tutor_reports", "booking_id");
+    if (t === "bookings") {
+      drop("tutor_reports", "booking_id");
+      drop("tutor_reviews", "booking_id");
+    }
   }
   async upload(file: File, family: string) {
     validateFile(file);

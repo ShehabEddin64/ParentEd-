@@ -31,6 +31,18 @@ const accounts = [
   ["Sami", "sami@demo.parented.test", ids.other, "parent"],
   ["Camille", "admin@demo.parented.test", ids.admin, "admin"],
   ["Nadia", "nadia@demo.parented.test", ids.tutor, "tutor"],
+  [
+    "Fatima",
+    "fatima@demo.parented.test",
+    "10000000-0000-4000-8000-000000000005",
+    "parent",
+  ],
+  [
+    "Marc",
+    "marc@demo.parented.test",
+    "10000000-0000-4000-8000-000000000006",
+    "parent",
+  ],
 ];
 const userMap = {};
 const familyMap = {};
@@ -55,10 +67,20 @@ for (const [name, email, oldId, role] of accounts) {
   userMap[oldId] = profile.id;
   familyMap[seed.profiles.find((p) => p.id === oldId).family_id] =
     profile.family_id;
-  if (role !== "parent") {
+  const source = seed.profiles.find((p) => p.id === oldId);
+  {
     const { error } = await client
       .from("profiles")
-      .update({ role })
+      .update({
+        role,
+        city: source.city,
+        lat: source.lat,
+        lng: source.lng,
+        bio: source.bio,
+        children_ages: source.children_ages,
+        interests: source.interests,
+        show_on_map: source.show_on_map,
+      })
       .eq("id", user.id);
     if (error) throw error;
   }
@@ -84,12 +106,18 @@ const personal = [
   "lesson_questions",
   "bookings",
   "tutor_reports",
+  "registrations",
+  "post_likes",
+  "messages",
+  "tutor_reviews",
 ];
 for (const table of personal)
   for (const source of seed[table]) {
     const row = { ...source };
     if (row.family_id) row.family_id = familyMap[row.family_id];
     if (row.user_id) row.user_id = userMap[row.user_id];
+    if (row.sender_id) row.sender_id = userMap[row.sender_id];
+    if (row.recipient_id) row.recipient_id = userMap[row.recipient_id];
     const { error } = await client.from(table).upsert(row);
     if (error) throw error;
   }

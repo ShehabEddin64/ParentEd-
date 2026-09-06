@@ -1,17 +1,14 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import {
-  ArrowLeft,
   ArrowRight,
   Search,
   Plus,
-  MessageCircle,
   MapPin,
   Clock,
   CheckCircle2,
   CalendarDays,
   CalendarPlus,
   List,
-  Flag,
   Trash2,
   Users,
   Star,
@@ -20,6 +17,7 @@ import {
   Map as MapIcon,
   Pencil,
 } from "lucide-react";
+import { MapView, type MapMarker } from "./MapView";
 import type { Props } from "../App";
 import {
   formatDate,
@@ -154,423 +152,6 @@ export function Resources({ data, profile, api, run, busy }: Props) {
     </>
   );
 }
-export function Community({ data, profile, api, run, busy }: Props) {
-  const [selected, setSelected] = useState(location.hash.split("/")[1] || "");
-  const [create, setCreate] = useState(false);
-  const [category, setCategory] = useState("Toutes");
-  const [group, setGroup] = useState("Tous");
-  const [report, setReport] = useState(false);
-  const [confirm, setConfirm] = useState("");
-  useEffect(() => {
-    const f = () => {
-      setSelected(location.hash.split("/")[1] || "");
-      setReport(false);
-    };
-    window.addEventListener("hashchange", f);
-    return () => window.removeEventListener("hashchange", f);
-  }, []);
-  const post = data.posts.find((p) => p.id === selected);
-  const membership = (groupId: string) =>
-    data.group_members.find(
-      (m) => m.group_id === groupId && m.user_id === profile.id,
-    );
-  const groupName = (id: string | null) =>
-    data.groups.find((g) => g.id === id)?.name;
-  const publish = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const f = new FormData(form);
-    if (
-      await run(
-        () =>
-          api.save("posts", {
-            id: crypto.randomUUID(),
-            user_id: profile.id,
-            author: profile.display_name,
-            title: required(String(f.get("title")), 160),
-            body: required(String(f.get("body"))),
-            category: String(f.get("category")),
-            created_at: new Date().toISOString(),
-            group_id: String(f.get("group_id")) || null,
-          }),
-        "Votre discussion est publiée.",
-      )
-    ) {
-      form.reset();
-      setCreate(false);
-    }
-  };
-  if (post)
-    return (
-      <>
-        <a className="back-link" href="#communaute">
-          <ArrowLeft size={17} />
-          Toutes les discussions
-        </a>
-        <article className="discussion-detail">
-          <div className="pill-row">
-            <span className="pill">{post.category}</span>
-            {post.group_id && (
-              <span className="pill">{groupName(post.group_id)}</span>
-            )}
-          </div>
-          <h1>{post.title}</h1>
-          <div className="post-author">
-            <span className="avatar sand">{post.author[0]}</span>
-            <span>
-              {post.author}
-              <small>
-                {new Date(post.created_at).toLocaleDateString("fr-CA")}
-              </small>
-            </span>
-          </div>
-          <p className="preserve-lines">{post.body}</p>
-          <div className="discussion-actions">
-            <button className="text-button" onClick={() => setReport(!report)}>
-              <Flag size={16} />
-              Signaler
-            </button>
-            {(post.user_id === profile.id || profile.role === "admin") &&
-              (confirm === post.id ? (
-                <>
-                  <button
-                    className="text-button danger"
-                    disabled={busy}
-                    onClick={async () => {
-                      if (
-                        await run(
-                          () => api.remove("posts", post.id),
-                          "Discussion supprimée.",
-                        )
-                      )
-                        location.hash = "communaute";
-                    }}
-                  >
-                    Confirmer la suppression
-                  </button>
-                  <button
-                    onClick={() => setConfirm("")}
-                    className="text-button"
-                  >
-                    Annuler
-                  </button>
-                </>
-              ) : (
-                <button
-                  className="text-button"
-                  onClick={() => setConfirm(post.id)}
-                >
-                  <Trash2 size={16} />
-                  Supprimer
-                </button>
-              ))}
-          </div>
-          {report && (
-            <form
-              className="editor"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const f = new FormData(e.currentTarget);
-                if (
-                  await run(
-                    () =>
-                      api.save("reports", {
-                        id: crypto.randomUUID(),
-                        post_id: post.id,
-                        user_id: profile.id,
-                        reason: required(String(f.get("reason")), 1000),
-                        created_at: new Date().toISOString(),
-                      }),
-                    "Signalement enregistré pour la modération.",
-                  )
-                )
-                  setReport(false);
-              }}
-            >
-              <label>
-                Motif du signalement
-                <textarea name="reason" required maxLength={1000} />
-              </label>
-              <button className="button secondary" disabled={busy}>
-                Transmettre à la modération
-              </button>
-            </form>
-          )}
-        </article>
-        <section className="replies">
-          <h2>
-            {data.replies.filter((r) => r.post_id === post.id).length}{" "}
-            réponse(s)
-          </h2>
-          {data.replies
-            .filter((r) => r.post_id === post.id)
-            .sort((a, b) => a.created_at.localeCompare(b.created_at))
-            .map((r) => (
-              <article className="reply" key={r.id}>
-                <span className="avatar">{r.author[0]}</span>
-                <div>
-                  <strong>{r.author}</strong>
-                  <p className="preserve-lines">{r.body}</p>
-                  {(r.user_id === profile.id || profile.role === "admin") && (
-                    <button
-                      className="text-button"
-                      disabled={busy}
-                      onClick={() =>
-                        run(
-                          () => api.remove("replies", r.id),
-                          "Réponse supprimée.",
-                        )
-                      }
-                    >
-                      Supprimer ma réponse
-                    </button>
-                  )}
-                </div>
-              </article>
-            ))}
-          <form
-            className="editor"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const form = e.currentTarget;
-              const f = new FormData(form);
-              if (
-                await run(
-                  () =>
-                    api.save("replies", {
-                      id: crypto.randomUUID(),
-                      post_id: post.id,
-                      user_id: profile.id,
-                      author: profile.display_name,
-                      body: required(String(f.get("body"))),
-                      created_at: new Date().toISOString(),
-                    }),
-                  "Réponse publiée.",
-                )
-              )
-                form.reset();
-            }}
-          >
-            <label>
-              À votre tour de partager
-              <textarea
-                name="body"
-                placeholder="Une idée, une expérience, un mot de soutien…"
-                required
-                maxLength={5000}
-              />
-            </label>
-            <button className="button primary" disabled={busy}>
-              Publier ma réponse
-              <ArrowRight size={17} />
-            </button>
-          </form>
-        </section>
-      </>
-    );
-  const posts = data.posts
-    .filter((p) => category === "Toutes" || p.category === category)
-    .filter(
-      (p) =>
-        group === "Tous" ||
-        (group === "Général" ? !p.group_id : p.group_id === group),
-    )
-    .sort((a, b) => b.created_at.localeCompare(a.created_at));
-  return (
-    <>
-      <PageTitle
-        eyebrow="ON AVANCE MIEUX ENSEMBLE"
-        title="Entre parents, tout simplement."
-        description="Des questions, des idées et des expériences à partager, sans jugement. Rejoignez un groupe de votre région ou autour d’un thème."
-        action={
-          <button className="button primary" onClick={() => setCreate(!create)}>
-            <Plus size={18} />
-            {create ? "Fermer" : "Lancer une discussion"}
-          </button>
-        }
-      />
-      <div className="community-layout">
-        <div>
-          {create && (
-            <form className="editor" onSubmit={publish}>
-              <h2>Qu’aimeriez-vous partager ?</h2>
-              <label>
-                Titre
-                <input name="title" required maxLength={160} />
-              </label>
-              <div className="form-grid">
-                <label>
-                  Catégorie
-                  <select name="category">
-                    <option>Au quotidien</option>
-                    <option>Questions et entraide</option>
-                    <option>Découvertes</option>
-                  </select>
-                </label>
-                <label>
-                  Groupe
-                  <select
-                    name="group_id"
-                    defaultValue={
-                      group !== "Tous" && group !== "Général" ? group : ""
-                    }
-                  >
-                    <option value="">Espace général</option>
-                    {data.groups.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <label>
-                Votre message
-                <textarea name="body" required maxLength={5000} />
-              </label>
-              <button className="button primary" disabled={busy}>
-                Publier la discussion
-              </button>
-            </form>
-          )}
-          <div className="tabs">
-            {[
-              "Toutes",
-              "Au quotidien",
-              "Questions et entraide",
-              "Découvertes",
-            ].map((c) => (
-              <button
-                key={c}
-                className={category === c ? "active" : ""}
-                onClick={() => setCategory(c)}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-          <div className="post-list">
-            {posts.map((p) => (
-              <a href={"#communaute/" + p.id} className="post-card" key={p.id}>
-                <div className="post-author">
-                  <span className="avatar sand">{p.author[0]}</span>
-                  <span>
-                    {p.author}
-                    <small>
-                      {new Date(p.created_at).toLocaleDateString("fr-CA")}
-                    </small>
-                  </span>
-                  <span className="pill">{p.category}</span>
-                  {p.group_id && (
-                    <span className="pill">{groupName(p.group_id)}</span>
-                  )}
-                </div>
-                <h2>{p.title}</h2>
-                <p>
-                  {p.body.slice(0, 200)}
-                  {p.body.length > 200 ? "…" : ""}
-                </p>
-                <small className="reply-count">
-                  <MessageCircle size={16} />
-                  {data.replies.filter((r) => r.post_id === p.id).length}{" "}
-                  réponse(s)
-                </small>
-              </a>
-            ))}
-          </div>
-          {!posts.length && (
-            <Empty>
-              La première discussion de ce groupe peut venir de vous.
-            </Empty>
-          )}
-        </div>
-        <aside className="community-side">
-          <section className="groups-panel">
-            <h2>
-              <Users size={18} /> Groupes
-            </h2>
-            <button
-              className={`group-row ${group === "Tous" ? "active" : ""}`}
-              onClick={() => setGroup("Tous")}
-            >
-              <span>Toutes les discussions</span>
-            </button>
-            <button
-              className={`group-row ${group === "Général" ? "active" : ""}`}
-              onClick={() => setGroup("Général")}
-            >
-              <span>Espace général</span>
-            </button>
-            {(["region", "theme"] as const).map((kind) => (
-              <div key={kind}>
-                <span className="eyebrow">
-                  {kind === "region" ? "PAR RÉGION" : "PAR THÈME"}
-                </span>
-                {data.groups
-                  .filter((g) => g.kind === kind)
-                  .map((g) => {
-                    const m = membership(g.id);
-                    const members = data.group_members.filter(
-                      (x) => x.group_id === g.id,
-                    ).length;
-                    return (
-                      <div
-                        className={`group-row ${group === g.id ? "active" : ""}`}
-                        key={g.id}
-                      >
-                        <button
-                          className="group-name"
-                          onClick={() => setGroup(g.id)}
-                        >
-                          <strong>{g.name}</strong>
-                          <small>
-                            {members} membre{members > 1 ? "s" : ""} ·{" "}
-                            {g.description}
-                          </small>
-                        </button>
-                        <button
-                          className={`text-button ${m ? "" : "join"}`}
-                          disabled={busy}
-                          onClick={() =>
-                            run(
-                              () =>
-                                m
-                                  ? api.remove("group_members", m.id)
-                                  : api.save("group_members", {
-                                      id: crypto.randomUUID(),
-                                      group_id: g.id,
-                                      user_id: profile.id,
-                                    }),
-                              m
-                                ? `Vous avez quitté « ${g.name} ».`
-                                : `Bienvenue dans « ${g.name} » !`,
-                            )
-                          }
-                        >
-                          {m ? "Quitter" : "Rejoindre"}
-                        </button>
-                      </div>
-                    );
-                  })}
-              </div>
-            ))}
-          </section>
-          <section className="community-guide">
-            <h2>Une place pour chacun.</h2>
-            <ul>
-              <li>Échangeons avec bienveillance.</li>
-              <li>Partageons nos expériences, sans imposer une méthode.</li>
-              <li>
-                Gardons les renseignements des enfants dans l’espace privé.
-              </li>
-              <li>Le bouton « Signaler » prévient l’équipe de modération.</li>
-            </ul>
-          </section>
-        </aside>
-      </div>
-    </>
-  );
-}
 export function Events({ data, profile, api, run, busy }: Props) {
   const today = api.mode === "demo" ? "2026-09-07" : localDate();
   const [view, setView] = useState("liste");
@@ -580,6 +161,8 @@ export function Events({ data, profile, api, run, busy }: Props) {
   const [moment, setMoment] = useState("Tous");
   const [free, setFree] = useState(false);
   const [propose, setPropose] = useState<Partial<Event> | null>(null);
+  const [pick, setPick] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapSelected, setMapSelected] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState("");
   const [month, setMonth] = useState(today.slice(0, 7));
   const published = data.events.filter((e) => e.published);
@@ -598,6 +181,30 @@ export function Events({ data, profile, api, run, busy }: Props) {
   const upcoming = occurrences(published, today, shiftDate(today, 120)).filter(
     (o) => matches(o.event, o.date),
   );
+  const participants = (id: string) =>
+    data.event_counts.find((c) => c.event_id === id)?.count ?? 0;
+  const mapMarkers = useMemo(() => {
+    const seen = new Set<string>();
+    const out: MapMarker[] = [];
+    for (const o of upcoming) {
+      const e = o.event;
+      if (seen.has(e.id) || e.lat === null || e.lng === null) continue;
+      seen.add(e.id);
+      out.push({
+        id: e.id,
+        lat: e.lat,
+        lng: e.lng,
+        title: e.title,
+        subtitle: formatDate(o.date) + " · " + e.time,
+        kind: "event",
+      });
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.events, data.event_counts, onlyMine, region, moment, free, today]);
+  const mapDetail = mapSelected
+    ? upcoming.find((o) => o.event.id === mapSelected)
+    : null;
   const featured = published.filter(
     (e) => e.featured && (e.recurrence !== "none" || e.date >= today),
   );
@@ -647,10 +254,26 @@ export function Events({ data, profile, api, run, busy }: Props) {
           recurrence_until: String(f.get("recurrence_until") || "") || null,
           map_url: map || null,
           created_by: profile.id,
+          lat: pick?.lat ?? null,
+          lng: pick?.lng ?? null,
         });
       }, "Proposition transmise à l’équipe. Elle sera publiée après vérification.")
-    )
+    ) {
       setPropose(null);
+      setPick(null);
+    }
+  };
+  const openProposal = (e: Partial<Event> | null) => {
+    setPropose(e);
+    setPick(
+      e &&
+        e.lat !== null &&
+        e.lat !== undefined &&
+        e.lng !== null &&
+        e.lng !== undefined
+        ? { lat: e.lat, lng: e.lng }
+        : null,
+    );
   };
   const details = (o: Occurrence) => {
     const e = o.event;
@@ -697,7 +320,19 @@ export function Events({ data, profile, api, run, busy }: Props) {
             {e.age} · {e.price}
           </li>
         </ul>
-        <p className="small muted">Organisé par {e.organizer}</p>
+        <p className="small muted">
+          Organisé par {e.organizer}
+          {participants(e.id) > 0 && (
+            <>
+              {" "}
+              ·{" "}
+              <strong>
+                {participants(e.id)} famille{participants(e.id) > 1 ? "s" : ""}{" "}
+                inscrite{participants(e.id) > 1 ? "s" : ""}
+              </strong>
+            </>
+          )}
+        </p>
         <div className="discussion-actions">
           <button
             className={`button ${registered(e.id) ? "secondary" : "primary"}`}
@@ -759,7 +394,7 @@ export function Events({ data, profile, api, run, busy }: Props) {
           <button
             className="button primary"
             onClick={() =>
-              setPropose(
+              openProposal(
                 propose
                   ? null
                   : {
@@ -791,7 +426,7 @@ export function Events({ data, profile, api, run, busy }: Props) {
             <button
               type="button"
               className="text-button"
-              onClick={() => setPropose(null)}
+              onClick={() => openProposal(null)}
             >
               Annuler
             </button>
@@ -913,6 +548,19 @@ export function Events({ data, profile, api, run, busy }: Props) {
               placeholder="https://www.openstreetmap.org/…"
             />
           </label>
+          <div className="span-2">
+            <span className="eyebrow">
+              LIEU SUR LA CARTE · cliquez pour placer le repère
+              {pick ? " (placé)" : ""}
+            </span>
+            <MapView
+              markers={[]}
+              pick={pick}
+              onPick={(lat, lng) => setPick({ lat, lng })}
+              height={260}
+              fit={false}
+            />
+          </div>
           <button className="button primary" disabled={busy}>
             Transmettre la proposition
           </button>
@@ -939,7 +587,7 @@ export function Events({ data, profile, api, run, busy }: Props) {
                     <button
                       className="icon-button"
                       aria-label={`Modifier ${e.title}`}
-                      onClick={() => setPropose(e)}
+                      onClick={() => openProposal(e)}
                     >
                       <Pencil size={17} />
                     </button>
@@ -1060,7 +708,33 @@ export function Events({ data, profile, api, run, busy }: Props) {
           Mes inscriptions
         </label>
       </div>
-      {view === "liste" ? (
+      {view === "carte" ? (
+        <div className="map-layout">
+          <MapView
+            markers={mapMarkers}
+            selectedId={mapSelected}
+            onSelect={setMapSelected}
+            height={520}
+          />
+          <aside className="map-side">
+            {mapDetail ? (
+              <div className="event-content">{details(mapDetail)}</div>
+            ) : (
+              <div className="map-hint">
+                <MapPin size={26} />
+                <h3>Cliquez sur un repère</h3>
+                <p className="small muted">
+                  {mapMarkers.length} rencontre
+                  {mapMarkers.length > 1 ? "s" : ""} géolocalisée
+                  {mapMarkers.length > 1 ? "s" : ""} dans les 4 prochains mois.
+                  {upcoming.length > mapMarkers.length &&
+                    " Certaines rencontres n’ont pas encore de lieu sur la carte."}
+                </p>
+              </div>
+            )}
+          </aside>
+        </div>
+      ) : view === "liste" ? (
         <div className="events-grid">
           {upcoming.slice(0, 30).map((o) => (
             <article className="event-card" key={o.key}>
@@ -1123,7 +797,11 @@ export function Events({ data, profile, api, run, busy }: Props) {
           )}
         </>
       )}
-      {(view === "liste" ? !upcoming.length : !monthly.length) && (
+      {(view === "liste"
+        ? !upcoming.length
+        : view === "carte"
+          ? !mapMarkers.length
+          : !monthly.length) && (
         <Empty>
           {onlyMine
             ? "Vous n’êtes inscrit à aucune rencontre correspondant à ces filtres."

@@ -19,6 +19,9 @@ import {
   GraduationCap,
   Megaphone,
   Star,
+  Bell,
+  MessageSquare,
+  MapPin,
 } from "lucide-react";
 import {
   completion,
@@ -26,6 +29,7 @@ import {
   localDate,
   occurrences,
   shiftDate,
+  timeAgo,
   type Data,
   type Profile,
 } from "./domain";
@@ -35,8 +39,10 @@ import { DemoGateway } from "./data/demo";
 import { Art, Empty, PageTitle } from "./components/ui";
 import { Courses } from "./components/Courses";
 import { Family } from "./components/Family";
-import { Community, Events, Resources } from "./components/Social";
+import { Events, Resources } from "./components/Social";
+import { Community } from "./components/Community";
 import { Tutoring } from "./components/Tutoring";
+import { Profile as ProfilePage } from "./components/Profile";
 import { Admin } from "./components/Admin";
 export type Run = (
   work: () => Promise<void>,
@@ -84,6 +90,7 @@ export default function App() {
   const [page, setPage] = useState(currentPage);
   const [menu, setMenu] = useState(false);
   const [recovery, setRecovery] = useState(false);
+  const [bell, setBell] = useState(false);
   const pending = useRef(false);
   const [mobile, setMobile] = useState(
     () => window.matchMedia("(max-width: 640px)").matches,
@@ -166,7 +173,12 @@ export default function App() {
     setNotice("");
     try {
       await work();
-      if (api) setData(await api.load());
+      if (api) {
+        const fresh = await api.load();
+        setData(fresh);
+        const me = fresh.profiles.find((p) => p.id === profile?.id);
+        if (me) setProfile(me);
+      }
       setNotice(message);
       return true;
     } catch (e) {
@@ -323,17 +335,19 @@ export default function App() {
             </div>
           </div>
           <div className="profile">
-            <span className="avatar">{profile.display_name.slice(0, 1)}</span>
-            <div>
-              <strong>{profile.display_name}</strong>
-              <small>
-                {profile.role === "admin"
-                  ? "Administration"
-                  : profile.role === "tutor"
-                    ? "Tuteur partenaire"
-                    : "Espace parent"}
-              </small>
-            </div>
+            <a href="#profil" className="profile-link" aria-label="Mon profil">
+              <span className="avatar">{profile.display_name.slice(0, 1)}</span>
+              <div>
+                <strong>{profile.display_name}</strong>
+                <small>
+                  {profile.role === "admin"
+                    ? "Administration"
+                    : profile.role === "tutor"
+                      ? "Tuteur partenaire"
+                      : profile.city || "Compléter mon profil"}
+                </small>
+              </div>
+            </a>
             <button
               className="icon-button"
               onClick={logout}
@@ -365,14 +379,27 @@ export default function App() {
           <span>
             Mon espace <ChevronRight size={14} />{" "}
             <strong>
-              {navigation.find((n) => n[0] === page)?.[1] || "Administration"}
+              {navigation.find((n) => n[0] === page)?.[1] ||
+                (page === "profil" ? "Mon profil" : "Administration")}
             </strong>
           </span>
-          <span className="topbar-tag">
-            <span className="status-dot" />
-            {api?.mode === "demo"
-              ? "Démonstration · données fictives"
-              : "Espace membre"}
+          <span className="topbar-right">
+            <span className="topbar-tag">
+              <span className="status-dot" />
+              {api?.mode === "demo"
+                ? "Démonstration · données fictives"
+                : "Espace membre"}
+            </span>
+            {data && api && (
+              <Notifications
+                data={data}
+                api={api}
+                run={run}
+                busy={busy}
+                open={bell}
+                setOpen={setBell}
+              />
+            )}
           </span>
         </div>
         <main id="main" tabIndex={-1}>
@@ -423,6 +450,8 @@ export default function App() {
             <Community {...props} />
           ) : page === "evenements" ? (
             <Events {...props} />
+          ) : page === "profil" ? (
+            <ProfilePage {...props} />
           ) : page === "admin" && profile.role === "admin" ? (
             <Admin {...props} />
           ) : (
@@ -439,6 +468,112 @@ export default function App() {
           )}
         </footer>
       </div>
+    </div>
+  );
+}
+function Notifications({
+  data,
+  api,
+  run,
+  busy,
+  open,
+  setOpen,
+}: {
+  data: Data;
+  api: Gateway;
+  run: Run;
+  busy: boolean;
+  open: boolean;
+  setOpen: (v: boolean) => void;
+}) {
+  const items = [...data.notifications].sort((a, b) =>
+    b.created_at.localeCompare(a.created_at),
+  );
+  const unread = items.filter((n) => !n.read_at);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [open, setOpen]);
+  const openItem = async (id: string, link: string, read: boolean) => {
+    setOpen(false);
+    if (!read)
+      await run(
+        () =>
+          api.patch("notifications", id, { read_at: new Date().toISOString() }),
+        "Notification lue.",
+      );
+    if (link) window.location.hash = link.replace(/^#/, "");
+  };
+  return (
+    <div className="bell-wrap">
+      <button
+        className="icon-button bell"
+        aria-label={`Notifications${unread.length ? ` (${unread.length} non lues)` : ""}`}
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        <Bell size={18} />
+        {unread.length > 0 && <span className="badge">{unread.length}</span>}
+      </button>
+      {open && (
+        <div className="bell-menu" role="dialog" aria-label="Notifications">
+          <div className="section-heading">
+            <h2>Notifications</h2>
+            {unread.length > 0 && (
+              <button
+                className="text-button"
+                disabled={busy}
+                onClick={() =>
+                  run(async () => {
+                    for (const n of unread)
+                      await api.patch("notifications", n.id, {
+                        read_at: new Date().toISOString(),
+                      });
+                  }, "Tout est lu.")
+                }
+              >
+                Tout marquer lu
+              </button>
+            )}
+          </div>
+          {!items.length && (
+            <p className="small muted">
+              Rien pour l’instant. Les réponses, messages et séances
+              apparaîtront ici.
+            </p>
+          )}
+          {items.slice(0, 12).map((n) => (
+            <button
+              key={n.id}
+              className={`bell-item ${n.read_at ? "" : "unread"}`}
+              onClick={() => openItem(n.id, n.link, Boolean(n.read_at))}
+            >
+              <span className="bell-icon">
+                {n.kind === "message" ? (
+                  <MessageSquare size={15} />
+                ) : n.kind === "booking" || n.kind === "report" ? (
+                  <GraduationCap size={15} />
+                ) : n.kind === "event" ? (
+                  <MapPin size={15} />
+                ) : n.kind === "like" ? (
+                  <Star size={15} />
+                ) : (
+                  <Users size={15} />
+                )}
+              </span>
+              <span>
+                <strong>{n.title}</strong>
+                {n.body && <small>{n.body}</small>}
+                <small className="muted">{timeAgo(n.created_at)}</small>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

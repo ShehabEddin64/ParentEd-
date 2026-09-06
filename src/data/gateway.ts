@@ -16,6 +16,12 @@ export interface Gateway {
   logout(): Promise<void>;
   load(): Promise<Data>;
   save<K extends Table>(table: K, row: Tables[K]): Promise<void>;
+  /** Partial update of an existing row; used where inserts are not allowed (profiles) or to mark items read. */
+  patch<K extends Table>(
+    table: K,
+    id: string,
+    changes: Partial<Tables[K]>,
+  ): Promise<void>;
   remove(table: Table, id: string): Promise<void>;
   upload(file: File, family: string): Promise<string>;
   download(path: string): Promise<Blob>;

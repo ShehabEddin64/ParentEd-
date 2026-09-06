@@ -4,6 +4,48 @@ export type Profile = {
   family_id: string;
   display_name: string;
   role: Role;
+  city: string;
+  lat: number | null;
+  lng: number | null;
+  bio: string;
+  children_ages: string;
+  interests: string[];
+  show_on_map: boolean;
+  created_at: string;
+};
+/** Public directory row (view): never carries family_id. */
+export type Member = Omit<Profile, "family_id">;
+export type EventCount = { id: string; event_id: string; count: number };
+export type PostLike = { id: string; post_id: string; user_id: string };
+export type Message = {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  body: string;
+  created_at: string;
+  read_at: string | null;
+};
+export type NotificationKind =
+  "reply" | "message" | "booking" | "report" | "answer" | "event" | "like";
+export type Notification = {
+  id: string;
+  user_id: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  link: string;
+  created_at: string;
+  read_at: string | null;
+};
+export type TutorReview = {
+  id: string;
+  tutor_id: string;
+  booking_id: string;
+  user_id: string;
+  author: string;
+  rating: number;
+  body: string;
+  created_at: string;
 };
 export type Course = {
   id: string;
@@ -65,6 +107,8 @@ export type Post = {
   category: string;
   created_at: string;
   group_id: string | null;
+  pinned: boolean;
+  updated_at: string | null;
 };
 export type Reply = {
   id: string;
@@ -100,6 +144,8 @@ export type Event = {
   recurrence_until: string | null;
   map_url: string | null;
   created_by: string | null;
+  lat: number | null;
+  lng: number | null;
 };
 export type Registration = { id: string; event_id: string; user_id: string };
 export type Resource = {
@@ -228,6 +274,12 @@ export type Tables = {
   week_plans: WeekPlan;
   library_items: LibraryItem;
   notes: Note;
+  members: Member;
+  event_counts: EventCount;
+  post_likes: PostLike;
+  messages: Message;
+  notifications: Notification;
+  tutor_reviews: TutorReview;
 };
 export type Table = keyof Tables;
 export type Data = { [K in Table]: Tables[K][] };
@@ -257,7 +309,15 @@ export const tableNames: Table[] = [
   "week_plans",
   "library_items",
   "notes",
+  "members",
+  "event_counts",
+  "post_likes",
+  "messages",
+  "notifications",
+  "tutor_reviews",
 ];
+/** Views: loaded, never written. */
+export const readOnlyTables: Table[] = ["members", "event_counts"];
 /** Tables whose rows belong to a family or a person; never shared. */
 export const privateTables: Table[] = [
   "tasks",
@@ -460,3 +520,60 @@ export const bookingStatusLabels: Record<BookingStatus, string> = {
   annulée: "Annulée",
   terminée: "Terminée",
 };
+
+/** Coarse locations offered for member profiles: city centres only, never home addresses. */
+export const quebecCities: { name: string; lat: number; lng: number }[] = [
+  { name: "Montréal", lat: 45.5019, lng: -73.5674 },
+  { name: "Laval", lat: 45.6066, lng: -73.7124 },
+  { name: "Longueuil", lat: 45.5312, lng: -73.5181 },
+  { name: "Brossard", lat: 45.4587, lng: -73.4658 },
+  { name: "Terrebonne", lat: 45.7, lng: -73.6472 },
+  { name: "Repentigny", lat: 45.7422, lng: -73.4506 },
+  { name: "Saint-Jérôme", lat: 45.7806, lng: -74.0036 },
+  { name: "Vaudreuil-Dorion", lat: 45.4, lng: -74.0333 },
+  { name: "Saint-Jean-sur-Richelieu", lat: 45.3071, lng: -73.2626 },
+  { name: "Granby", lat: 45.4001, lng: -72.7326 },
+  { name: "Drummondville", lat: 45.8833, lng: -72.4833 },
+  { name: "Sherbrooke", lat: 45.4042, lng: -71.8929 },
+  { name: "Trois-Rivières", lat: 46.3432, lng: -72.5429 },
+  { name: "Québec", lat: 46.8139, lng: -71.208 },
+  { name: "Lévis", lat: 46.8033, lng: -71.1779 },
+  { name: "Saguenay", lat: 48.4281, lng: -71.0684 },
+  { name: "Gatineau", lat: 45.4765, lng: -75.7013 },
+  { name: "Rimouski", lat: 48.4489, lng: -68.5236 },
+  { name: "Rouyn-Noranda", lat: 48.2359, lng: -79.0244 },
+  { name: "Sept-Îles", lat: 50.2001, lng: -66.3821 },
+  { name: "Ailleurs au Québec", lat: 46.5, lng: -72.5 },
+  { name: "Hors Québec", lat: 45.4215, lng: -75.6972 },
+];
+export const interestOptions = [
+  "Nature et plein air",
+  "Sciences",
+  "Lecture",
+  "Arts et bricolage",
+  "Musique",
+  "Sport",
+  "Cuisine",
+  "Langues",
+  "Mathématiques",
+  "Histoire",
+  "Jeux de société",
+  "Entraide entre parents",
+];
+export function averageRating(reviews: { rating: number }[]) {
+  return reviews.length
+    ? Math.round(
+        (reviews.reduce((n, r) => n + r.rating, 0) / reviews.length) * 10,
+      ) / 10
+    : null;
+}
+export function timeAgo(iso: string, now = new Date()) {
+  const minutes = Math.round((now.getTime() - new Date(iso).getTime()) / 60000);
+  if (minutes < 1) return "à l’instant";
+  if (minutes < 60) return `il y a ${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `il y a ${hours} h`;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `il y a ${days} j`;
+  return new Date(iso).toLocaleDateString("fr-CA");
+}
