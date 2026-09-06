@@ -19,6 +19,7 @@ import {
   BarChart3,
   Upload as UploadIcon,
   Wand2,
+  CalendarPlus,
 } from "lucide-react";
 import {
   localDate,
@@ -29,6 +30,8 @@ import {
   weekDates,
   formatDate,
   gradeStats,
+  parseIcs,
+  expandIcs,
   parseCurriculum,
   percent,
   spreadDates,
@@ -50,6 +53,7 @@ export function Family(props: Props) {
   const [editing, setEditing] = useState<Partial<Task> | null>(null);
   const [view, setView] = useState("semaine");
   const [deleteId, setDeleteId] = useState("");
+  const [importCal, setImportCal] = useState(false);
   const days = weekDates(anchor);
   const childNames = [everyone, ...data.children.map((c) => c.name)];
   const submit = async (e: FormEvent<HTMLFormElement>) => {
@@ -64,6 +68,7 @@ export function Family(props: Props) {
         date: String(f.get("date")),
         time: String(f.get("time")),
         done: editing?.done || false,
+        source: editing?.source ?? "",
       });
     }, "Activité enregistrée dans votre semaine.");
     if (ok) {
@@ -87,15 +92,24 @@ export function Family(props: Props) {
         description="Une semaine souple par enfant, vos livres et ressources, et un portfolio privé pour garder des traces."
         action={
           view === "semaine" && (
-            <button
-              className="button primary"
-              onClick={() =>
-                setEditing({ date: anchor, time: "09:00", child: everyone })
-              }
-            >
-              <Plus size={18} />
-              Ajouter une activité
-            </button>
+            <div className="discussion-actions">
+              <button
+                className="button secondary"
+                onClick={() => setImportCal(!importCal)}
+              >
+                <CalendarPlus size={18} />
+                Importer un calendrier
+              </button>
+              <button
+                className="button primary"
+                onClick={() =>
+                  setEditing({ date: anchor, time: "09:00", child: everyone })
+                }
+              >
+                <Plus size={18} />
+                Ajouter une activité
+              </button>
+            </div>
           )
         }
       />
@@ -113,6 +127,13 @@ export function Family(props: Props) {
       </div>
       {view === "semaine" && (
         <>
+          {importCal && (
+            <CalendarImport
+              {...props}
+              childNames={childNames}
+              onDone={() => setImportCal(false)}
+            />
+          )}
           {editing && (
             <section className="editor">
               <div className="section-heading">
@@ -1784,8 +1805,13 @@ function Results({
     const f = new FormData(e.currentTarget);
     const score = Number(f.get("score"));
     const max = Number(f.get("max"));
+    const weight = Number(f.get("weight") || 1);
     if (
       await run(async () => {
+        if (!(weight > 0) || weight > 100)
+          throw new Error(
+            "La pondération doit être comprise entre 0,1 et 100.",
+          );
         if (!(max > 0) || score < 0 || score > max)
           throw new Error("La note doit être comprise entre 0 et le maximum.");
         await api.save("grades", {
@@ -1799,6 +1825,7 @@ function Results({
           date: String(f.get("date")),
           source: edit?.source ?? "manuel",
           created_at: edit?.created_at ?? new Date().toISOString(),
+          weight,
         });
       }, "Résultat enregistré.")
     ) {
@@ -1898,6 +1925,22 @@ function Results({
             Date
             <input name="date" type="date" defaultValue={edit.date} required />
           </label>
+          <label>
+            Pondération
+            <input
+              name="weight"
+              type="number"
+              step="any"
+              min={0.1}
+              max={100}
+              defaultValue={edit.weight ?? 1}
+              required
+            />
+            <small className="muted">
+              Poids dans la moyenne : 1 = normal, 2 = compte double, 0,5 =
+              compte moitié. Un pourcentage fonctionne aussi (20 pour 20 %).
+            </small>
+          </label>
           <div className="discussion-actions">
             <button className="button primary" disabled={busy}>
               Enregistrer
@@ -1936,7 +1979,8 @@ function Results({
                 <span className="eyebrow">{s2.subject}</span>
                 <strong>{s2.average} %</strong>
                 <small>
-                  {s2.count} résultat{s2.count > 1 ? "s" : ""} · dernier :{" "}
+                  {s2.count} résultat{s2.count > 1 ? "s" : ""} · poids{" "}
+                  {s2.weight} · dernier :{" "}
                   {percent(s2.latest.score, s2.latest.max)} %
                 </small>
                 <Chart series={s2.series} />
@@ -1944,7 +1988,7 @@ function Results({
             ))}
           </section>
           <p className="small muted">
-            Moyennes calculées en pourcentage, toutes notes pesant également.
+            Moyennes pondérées : chaque note compte selon sa pondération.
             Repères pour la famille, pas un bulletin officiel.
           </p>
           <div className="section-heading">
@@ -1959,6 +2003,7 @@ function Results({
                   <th>Intitulé</th>
                   <th>Note</th>
                   <th>%</th>
+                  <th>Poids</th>
                   <th></th>
                 </tr>
               </thead>
@@ -1981,6 +2026,7 @@ function Results({
                     <td>
                       <strong>{percent(g.score, g.max)} %</strong>
                     </td>
+                    <td>×{g.weight}</td>
                     <td className="row-actions">
                       <button
                         className="icon-button"
@@ -2027,5 +2073,168 @@ function Results({
         </>
       )}
     </>
+  );
+}
+
+function CalendarImport({
+  data,
+  profile,
+  api,
+  run,
+  busy,
+  childNames,
+  onDone,
+}: Props & { childNames: string[]; onDone: () => void }) {
+  const [text, setText] = useState("");
+  const [name, setName] = useState("");
+  const today = api.mode === "demo" ? "2026-09-07" : localDate();
+  const [from, setFrom] = useState(today);
+  const [to, setTo] = useState(shiftDate(today, 90));
+  const [child, setChild] = useState(everyone);
+  const [allDay, setAllDay] = useState(true);
+  const events = text ? parseIcs(text) : [];
+  const rows = expandIcs(events, from, to).filter((r) => allDay || !r.allDay);
+  const existing = new Map(
+    data.tasks.filter((t) => t.source).map((t) => [t.source, t]),
+  );
+  const doImport = async () => {
+    if (!rows.length) return;
+    const ok = await run(
+      async () => {
+        for (const r of rows) {
+          const prev = existing.get(r.uid);
+          await api.save("tasks", {
+            id: prev?.id ?? crypto.randomUUID(),
+            family_id: profile.family_id,
+            title: r.title,
+            child: prev?.child ?? child,
+            date: r.date,
+            time: r.time,
+            done: prev?.done ?? false,
+            source: r.uid,
+          });
+        }
+      },
+      `${rows.length} événement${rows.length > 1 ? "s" : ""} importé${rows.length > 1 ? "s" : ""} dans votre semaine.`,
+    );
+    if (ok) onDone();
+  };
+  return (
+    <section className="editor rise">
+      <div className="section-heading">
+        <h2>Importer un calendrier</h2>
+        <button type="button" className="text-button" onClick={onDone}>
+          Fermer
+        </button>
+      </div>
+      <p className="small muted">
+        Exportez votre calendrier au format <code>.ics</code> (Google Calendar :
+        Paramètres → Importer et exporter → Exporter; Apple : Fichier →
+        Exporter; Outlook : Enregistrer le calendrier). Les événements de la
+        période choisie deviennent des activités de « Ma semaine ». Un second
+        import du même fichier met à jour au lieu de dupliquer.
+      </p>
+      <label className="upload-zone small-zone">
+        <UploadIcon size={20} />
+        <strong>{name || "Choisir un fichier .ics"}</strong>
+        <input
+          type="file"
+          accept=".ics,text/calendar"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              setName(file.name);
+              setText((await file.text()).slice(0, 2_000_000));
+            }
+            e.target.value = "";
+          }}
+        />
+      </label>
+      <div className="form-grid">
+        <label>
+          Du
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+          />
+        </label>
+        <label>
+          Au
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+          />
+        </label>
+        <label>
+          Pour qui ?
+          <input
+            list="children-names-ics"
+            value={child}
+            onChange={(e) => setChild(e.target.value)}
+            maxLength={80}
+          />
+          <datalist id="children-names-ics">
+            {childNames.map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
+        </label>
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={allDay}
+            onChange={(e) => setAllDay(e.target.checked)}
+          />
+          Inclure les événements « journée entière » (placés à 9 h)
+        </label>
+      </div>
+      {text && (
+        <p className="small">
+          {events.length} événement{events.length > 1 ? "s" : ""} dans le
+          fichier ·{" "}
+          <strong>
+            {rows.length} occurrence{rows.length > 1 ? "s" : ""}
+          </strong>{" "}
+          entre le {formatDate(from, { day: "numeric", month: "long" })} et le{" "}
+          {formatDate(to, { day: "numeric", month: "long" })}
+          {rows.some((r) => existing.has(r.uid)) &&
+            " · certaines existent déjà et seront mises à jour"}
+        </p>
+      )}
+      {rows.length > 0 && (
+        <ul className="import-preview">
+          {rows.slice(0, 8).map((r) => (
+            <li key={r.uid}>
+              <span>
+                {formatDate(r.date, {
+                  weekday: "short",
+                  day: "numeric",
+                  month: "short",
+                })}{" "}
+                · {r.allDay ? "journée" : r.time}
+              </span>
+              <strong>{r.title}</strong>
+            </li>
+          ))}
+          {rows.length > 8 && (
+            <li className="muted">… et {rows.length - 8} de plus</li>
+          )}
+        </ul>
+      )}
+      <div className="discussion-actions">
+        <button
+          className="button primary"
+          disabled={busy || !rows.length}
+          onClick={doImport}
+        >
+          <CalendarPlus size={16} /> Importer
+          {rows.length
+            ? ` ${rows.length} événement${rows.length > 1 ? "s" : ""}`
+            : ""}
+        </button>
+      </div>
+    </section>
   );
 }

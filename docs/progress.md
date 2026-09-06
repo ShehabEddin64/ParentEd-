@@ -52,9 +52,15 @@ Mis à jour le 6 septembre 2026 (troisième itération).
 - Rencontres de démonstration réduites à cinq.
 - CSP : `api.open-meteo.com` autorisé pour la météo.
 
+### Septième itération : pondération, import de calendrier, assistant
+- **Résultats pondérés** : colonne `weight` (migration V5), champ « Pondération » dans le formulaire, moyennes générale et par matière pondérées, poids affiché dans le tableau.
+- **Import de calendrier** : bouton « Importer un calendrier » dans Ma semaine; lecture des fichiers `.ics` (Google, Apple, Outlook) avec dépliage des lignes, dates locales, UTC et journée entière, récurrences quotidiennes/hebdomadaires/mensuelles (UNTIL et COUNT), aperçu, période, enfant; les activités importées gardent leur identifiant source pour être mises à jour sans doublon (colonne `tasks.source`).
+- **Assistant « Besoin d’aide ? »** : panneau flottant; recherche locale dans cours, leçons, ressources, examens, rencontres et pages, avec réponses préparées aux questions fréquentes; fonction Edge `assistant` (Claude, clé à fournir) pour des réponses en langage naturel à partir des contenus publics.
+- 42 tests.
+
 ## Vérifications exécutées
 
-- `npm test` : **39 tests réussis**, dont **26 tests PostgreSQL/PGlite** exécutant les quatre migrations (tutorat, propositions, favoris, groupes, questions, familles, profils, annuaire, messages, notifications, j’aime, avis).
+- `npm test` : **42 tests réussis**, dont **27 tests PostgreSQL/PGlite** exécutant les cinq migrations (tutorat, propositions, favoris, groupes, questions, familles, profils, annuaire, messages, notifications, j’aime, avis).
 - `npm run build` et `tsc -b` réussis; `npm run format:check` réussi; `wrangler deploy --dry-run` réussi, sans publication.
 - Navigateur (Vite 5173, ordinateur 1280 px et mobile 375 px) : accueil, tutorat, rencontres avec annonce à la une et récurrence, communauté avec groupes, semaine avec plan hebdomadaire et séance de tutorat, leçon avec modèle/note/questions, portfolio; flux exécutés : demande de séance (refus d’un jour sans disponibilité, puis acceptation), favori, adhésion à un groupe, proposition de rencontre visible par l’administration, espace tutrice Nadia avec ses séances.
 

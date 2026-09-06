@@ -35,6 +35,7 @@ import { Tutoring } from "./components/Tutoring";
 import { Profile as ProfilePage } from "./components/Profile";
 import { Exams } from "./components/Exams";
 import { Dashboard } from "./components/Dashboard";
+import { Assistant } from "./components/Assistant";
 import { pages } from "./images";
 import { Admin } from "./components/Admin";
 export type Run = (
@@ -458,6 +459,7 @@ export default function App() {
             </Empty>
           )}
         </main>
+        {props && <Assistant {...props} />}
         <footer>
           parentEd <span>À votre rythme. Ensemble.</span>
           {api?.mode === "demo" && (

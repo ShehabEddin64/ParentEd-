@@ -7,6 +7,9 @@ import {
   safeUrl,
   occurrences,
   icsFor,
+  gradeStats,
+  parseIcs,
+  expandIcs,
   isWeekend,
   shiftMonth,
 } from "../src/domain";
@@ -333,5 +336,65 @@ describe("Communauté en démonstration : messages, notifications, profil", () =
     await expect(api.patch("posts", post.id, { pinned: true })).rejects.toThrow(
       "Accès refusé",
     );
+  });
+});
+describe("Pondération et import de calendrier", () => {
+  it("calcule des moyennes pondérées", () => {
+    const g = (score: number, max: number, weight: number) => ({
+      id: crypto.randomUUID(),
+      family_id: ids.family,
+      child: "Lina",
+      subject: "Maths",
+      title: "t",
+      score,
+      max,
+      date: "2026-09-01",
+      source: "manuel" as const,
+      created_at: "",
+      weight,
+    });
+    expect(gradeStats([g(10, 10, 1), g(5, 10, 1)]).overall).toBe(75);
+    expect(gradeStats([g(10, 10, 1), g(5, 10, 3)]).overall).toBe(63);
+    expect(gradeStats([g(8, 10, 2)]).subjects[0].weight).toBe(2);
+  });
+  it("lit un export Google Calendar avec récurrence, fuseau UTC et journée entière", () => {
+    const ics = [
+      "BEGIN:VCALENDAR",
+      "BEGIN:VEVENT",
+      "UID:abc@google.com",
+      "DTSTART;TZID=America/Toronto:20260914T093000",
+      "RRULE:FREQ=WEEKLY;COUNT=3",
+      "SUMMARY:Lecture partagée\\, salon",
+      "END:VEVENT",
+      "BEGIN:VEVENT",
+      "UID:def",
+      "DTSTART;VALUE=DATE:20260920",
+      "SUMMARY:Sortie au musée",
+      "END:VEVENT",
+      "BEGIN:VEVENT",
+      "UID:ghi",
+      "DTSTART:20260915T170000Z",
+      "SUMMARY:Appel avec la",
+      "  conseillère",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+    const events = parseIcs(ics);
+    expect(events).toHaveLength(3);
+    expect(events[0]).toMatchObject({
+      title: "Lecture partagée, salon",
+      date: "2026-09-14",
+      time: "09:30",
+      recurrence: "weekly",
+      until: "2026-09-28",
+    });
+    expect(events[1]).toMatchObject({ date: "2026-09-20", allDay: true });
+    expect(events[2].title).toBe("Appel avec la conseillère");
+    expect(events[2].date).toBe("2026-09-15");
+    const rows = expandIcs(events, "2026-09-14", "2026-10-31");
+    expect(
+      rows.filter((r) => r.title.startsWith("Lecture")).map((r) => r.date),
+    ).toEqual(["2026-09-14", "2026-09-21", "2026-09-28"]);
+    expect(rows).toHaveLength(5);
   });
 });

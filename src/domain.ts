@@ -97,6 +97,7 @@ export type Task = {
   date: string;
   time: string;
   done: boolean;
+  source: string;
 };
 export type Post = {
   id: string;
@@ -254,6 +255,7 @@ export type Grade = {
   date: string;
   source: "manuel" | "examen";
   created_at: string;
+  weight: number;
 };
 export type TutorAvailability = {
   id: string;
@@ -763,12 +765,18 @@ export function gradeStats(grades: Grade[]) {
   const bySubject = new Map<string, Grade[]>();
   for (const g of grades)
     bySubject.set(g.subject, [...(bySubject.get(g.subject) ?? []), g]);
-  const avg = (rows: Grade[]) =>
-    rows.length
+  /** Weighted mean of percentages; a weight of 1 for every grade gives the plain mean. */
+  const avg = (rows: Grade[]) => {
+    const total = rows.reduce((n, g) => n + (g.weight || 1), 0);
+    return rows.length
       ? Math.round(
-          rows.reduce((n, g) => n + percent(g.score, g.max), 0) / rows.length,
+          rows.reduce(
+            (n, g) => n + percent(g.score, g.max) * (g.weight || 1),
+            0,
+          ) / total,
         )
       : null;
+  };
   return {
     overall: avg(grades),
     subjects: [...bySubject]
@@ -776,6 +784,7 @@ export function gradeStats(grades: Grade[]) {
         subject,
         average: avg(rows) ?? 0,
         count: rows.length,
+        weight: rows.reduce((n, g) => n + (g.weight || 1), 0),
         latest: [...rows].sort((a, b) => a.date.localeCompare(b.date)).at(-1)!,
         series: [...rows]
           .sort((a, b) => a.date.localeCompare(b.date))
@@ -787,4 +796,153 @@ export function gradeStats(grades: Grade[]) {
       }))
       .sort((a, b) => a.subject.localeCompare(b.subject)),
   };
+}
+
+export type IcsEvent = {
+  uid: string;
+  title: string;
+  date: string;
+  time: string;
+  allDay: boolean;
+  recurrence: "none" | "daily" | "weekly" | "monthly";
+  until: string | null;
+};
+/** Unfolds iCalendar lines (RFC 5545 folding) and returns decoded property values. */
+function icsLines(text: string) {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/\n[ \t]/g, "")
+    .split("\n");
+}
+function icsDate(value: string, params: string) {
+  const v = value.trim();
+  const m = v.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?$/);
+  if (!m) return null;
+  if (!m[4] || /VALUE=DATE(?![-])/i.test(params))
+    return { date: `${m[1]}-${m[2]}-${m[3]}`, time: "09:00", allDay: true };
+  if (m[7] === "Z") {
+    // UTC: convert to the reader's local time.
+    const d = new Date(
+      Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] ?? 0)),
+    );
+    return {
+      date: localDate(d),
+      time: `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`,
+      allDay: false,
+    };
+  }
+  return {
+    date: `${m[1]}-${m[2]}-${m[3]}`,
+    time: `${m[4]}:${m[5]}`,
+    allDay: false,
+  };
+}
+/** Parses VEVENTs from an .ics export (Google Calendar, Apple, Outlook). Only fields ParentEd uses. */
+export function parseIcs(text: string): IcsEvent[] {
+  const out: IcsEvent[] = [];
+  let current: Partial<IcsEvent> & { inEvent?: boolean } = {};
+  for (const line of icsLines(text)) {
+    if (line === "BEGIN:VEVENT") {
+      current = { inEvent: true, recurrence: "none", until: null };
+      continue;
+    }
+    if (line === "END:VEVENT") {
+      if (current.inEvent && current.date && current.title)
+        out.push({
+          uid: current.uid || `${current.date}-${current.title}`,
+          title: current.title,
+          date: current.date,
+          time: current.time || "09:00",
+          allDay: Boolean(current.allDay),
+          recurrence: current.recurrence || "none",
+          until: current.until ?? null,
+        });
+      current = {};
+      continue;
+    }
+    if (!current.inEvent) continue;
+    const idx = line.indexOf(":");
+    if (idx < 0) continue;
+    const head = line.slice(0, idx);
+    const value = line.slice(idx + 1);
+    const [name, ...params] = head.split(";");
+    const p = params.join(";");
+    switch (name.toUpperCase()) {
+      case "UID":
+        current.uid = value.trim().slice(0, 200);
+        break;
+      case "SUMMARY":
+        current.title = value
+          .replace(/\\,/g, ",")
+          .replace(/\\;/g, ";")
+          .replace(/\\n/g, " ")
+          .trim()
+          .slice(0, 200);
+        break;
+      case "DTSTART": {
+        const d = icsDate(value, p);
+        if (d) Object.assign(current, d);
+        break;
+      }
+      case "RRULE": {
+        const freq = value
+          .match(/FREQ=(DAILY|WEEKLY|MONTHLY)/i)?.[1]
+          ?.toLowerCase() as IcsEvent["recurrence"] | undefined;
+        if (freq) current.recurrence = freq;
+        const until = value.match(/UNTIL=(\d{4})(\d{2})(\d{2})/);
+        if (until) current.until = `${until[1]}-${until[2]}-${until[3]}`;
+        const count = value.match(/COUNT=(\d+)/);
+        if (count && current.date && freq) {
+          const n = Math.min(Number(count[1]), 60);
+          current.until =
+            freq === "daily"
+              ? shiftDate(current.date, n - 1)
+              : freq === "weekly"
+                ? shiftDate(current.date, 7 * (n - 1))
+                : shiftMonth(current.date, n - 1);
+        }
+        break;
+      }
+    }
+  }
+  return out;
+}
+/** Expands parsed events into dated rows between two dates, capped to keep imports reasonable. */
+export function expandIcs(
+  events: IcsEvent[],
+  from: string,
+  to: string,
+  limit = 400,
+) {
+  const rows: {
+    uid: string;
+    title: string;
+    date: string;
+    time: string;
+    allDay: boolean;
+  }[] = [];
+  for (const e of events) {
+    let date = e.date;
+    const until =
+      e.recurrence === "none" ? e.date : e.until && e.until < to ? e.until : to;
+    let guard = 0;
+    while (date <= until && guard++ < 400 && rows.length < limit) {
+      if (date >= from)
+        rows.push({
+          uid: e.uid + "@" + date,
+          title: e.title,
+          date,
+          time: e.time,
+          allDay: e.allDay,
+        });
+      if (e.recurrence === "none") break;
+      date =
+        e.recurrence === "daily"
+          ? shiftDate(date, 1)
+          : e.recurrence === "weekly"
+            ? shiftDate(date, 7)
+            : shiftMonth(date, 1);
+    }
+  }
+  return rows.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
 }

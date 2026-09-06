@@ -711,3 +711,30 @@ describe.sequential(
     });
   },
 );
+describe.sequential(
+  "Migration V5 : pondération et import de calendrier",
+  () => {
+    it("accepte une pondération valide, refuse une pondération nulle, et conserve la source d’import", async () => {
+      await actor(a);
+      await db.exec(
+        "insert into grades(child,subject,title,score,max,weight) values ('Lina','Maths','Projet',9,10,2)",
+      );
+      await expect(
+        db.exec(
+          "insert into grades(child,subject,title,score,max,weight) values ('Lina','Maths','Faux',9,10,0)",
+        ),
+      ).rejects.toThrow();
+      await db.exec(
+        "insert into tasks(title,child,date,time,source) values ('Cours de piano','Lina','2026-09-16','16:00','abc@google.com@2026-09-16')",
+      );
+      expect(
+        (await rows("select weight from grades where title='Projet'"))[0]
+          .weight,
+      ).toBe("2");
+      await actor(b);
+      expect(await rows("select * from tasks where source<>''")).toHaveLength(
+        0,
+      );
+    });
+  },
+);

@@ -162,6 +162,24 @@ export class SupabaseGateway implements Gateway {
       return false;
     }
   }
+  async askAssistant(
+    messages: { role: "user" | "assistant"; content: string }[],
+  ) {
+    const { data, error } = await this.client.functions.invoke("assistant", {
+      body: { messages },
+    });
+    const r = data as {
+      available?: boolean;
+      answer?: string;
+      error?: string;
+    } | null;
+    if (r && r.available === false) return null;
+    if (error || !r?.answer)
+      throw new Error(
+        r?.error ?? "L’assistant est indisponible pour le moment.",
+      );
+    return r.answer;
+  }
   async upload(file: File, family: string) {
     validateFile(file);
     const path = family + "/" + crypto.randomUUID();

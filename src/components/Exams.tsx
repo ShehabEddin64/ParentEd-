@@ -204,6 +204,7 @@ function Runner({
           date: new Date().toISOString().slice(0, 10),
           source: "examen",
           created_at: new Date().toISOString(),
+          weight: 1,
         });
     }, `Résultat enregistré : ${score} / ${questions.length}.`);
     if (ok) setResult({ score });

@@ -257,6 +257,7 @@ export const seed: Data = {
       date: "2026-09-08",
       time: "09:00",
       done: false,
+      source: "",
     },
     {
       id: "50000000-0000-4000-8000-000000000002",
@@ -266,6 +267,7 @@ export const seed: Data = {
       date: "2026-09-08",
       time: "10:30",
       done: false,
+      source: "",
     },
     {
       id: "50000000-0000-4000-8000-000000000003",
@@ -275,6 +277,7 @@ export const seed: Data = {
       date: "2026-09-10",
       time: "14:00",
       done: false,
+      source: "",
     },
   ],
   posts: [
@@ -1431,6 +1434,7 @@ export const seed: Data = {
       date: "2026-08-26",
       source: "manuel",
       created_at: "2026-08-26T16:00:00Z",
+      weight: 1,
     },
     {
       id: "c5000000-0000-4000-8000-000000000002",
@@ -1443,6 +1447,7 @@ export const seed: Data = {
       date: "2026-09-04",
       source: "examen",
       created_at: "2026-09-04T15:00:00Z",
+      weight: 2,
     },
     {
       id: "c5000000-0000-4000-8000-000000000003",
@@ -1455,6 +1460,7 @@ export const seed: Data = {
       date: "2026-08-28",
       source: "manuel",
       created_at: "2026-08-28T16:00:00Z",
+      weight: 1,
     },
     {
       id: "c5000000-0000-4000-8000-000000000004",
@@ -1467,6 +1473,7 @@ export const seed: Data = {
       date: "2026-09-03",
       source: "manuel",
       created_at: "2026-09-03T16:00:00Z",
+      weight: 1,
     },
     {
       id: "c5000000-0000-4000-8000-000000000005",
@@ -1479,6 +1486,7 @@ export const seed: Data = {
       date: "2026-09-02",
       source: "manuel",
       created_at: "2026-09-02T16:00:00Z",
+      weight: 1,
     },
   ],
   tutor_reviews: [

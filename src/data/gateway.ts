@@ -25,6 +25,10 @@ export interface Gateway {
   remove(table: Table, id: string): Promise<void>;
   /** Asks the server to e-mail a booking confirmation. Resolves true only when a message was really sent. */
   sendBookingEmail(bookingId: string): Promise<boolean>;
+  /** Asks the server-side assistant. Returns null when no AI assistant is configured. */
+  askAssistant(
+    messages: { role: "user" | "assistant"; content: string }[],
+  ): Promise<string | null>;
   upload(file: File, family: string): Promise<string>;
   download(path: string): Promise<Blob>;
   deleteFile(path: string): Promise<void>;

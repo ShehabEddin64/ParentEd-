@@ -94,6 +94,9 @@ export class DemoGateway implements Gateway {
   async sendBookingEmail() {
     return false;
   }
+  async askAssistant() {
+    return null;
+  }
   async logout() {
     this.storage.removeItem(sessionKey);
   }

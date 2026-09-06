@@ -142,6 +142,20 @@ npx supabase functions deploy booking-email
 
 Sans clé, la fonction répond « non envoyé » et l’application n’affiche simplement pas la mention « courriel envoyé ».
 
+## 7 ter. Assistant « Besoin d’aide ? » avec Claude (facultatif)
+
+Le bouton « Besoin d’aide ? » fonctionne sans configuration : il cherche dans les cours, ressources, examens et pages de ParentEd. Pour des réponses en langage naturel fondées sur ces contenus, déployer la fonction `assistant` avec une clé API Anthropic :
+
+```bash
+npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+```
+
+```bash
+npx supabase functions deploy assistant
+```
+
+La fonction utilise le modèle `claude-opus-5`, n’envoie que la question du parent et les contenus publics de ParentEd (jamais les données familiales), et rappelle systématiquement que les démarches officielles relèvent des sources gouvernementales. Chaque question a un coût API : surveiller la consommation dans la console Anthropic.
+
 ## 8. Sécurité et exploitation
 
 - `public/_headers` publie une CSP qui autorise `https://*.supabase.co` et les tuiles `tile.openstreetmap.org` pour la carte : un domaine Supabase personnalisé ou un autre fournisseur de tuiles exige d’ajuster `connect-src` / `img-src`.
