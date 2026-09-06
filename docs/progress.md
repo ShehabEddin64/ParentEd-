@@ -67,6 +67,7 @@ Mis à jour le 6 septembre 2026 (troisième itération).
 - Page d’accueil à la racine du site (la connexion passe sur `#connexion`) : héros animé en couches (parallaxe, collines, soleil, oiseaux, brume, feuilles, avions en papier, étoiles, enfants dessinés en vectoriel qui jouent et apprennent), motifs griffonnés, sections Problème, Solution (six volets avec photos), Un mardi type, Offre (pile de valeur, bonus fondateurs, engagement, 50 familles fondatrices), Tarif (49 $ prévu, aucun paiement actuel, comparatif), FAQ, formulaire d’appel et liste d’attente, pied de page avec mentions légales.
 - Migration V8 : table `leads` (insertion anonyme limitée à 3 par courriel et 300 par jour, lecture réservée à l’équipe); onglet « Demandes de contact » dans l’administration avec réponse par courriel et statut traité.
 - Animations respectueuses de `prefers-reduced-motion`.
+- Révision selon les retours : héros blanc sans photo avec de grands personnages sur les collines, titres centrés et agrandis sans sur-titres, sections rapprochées, listes sans boîtes ni icônes, solution en six points sans photos, « mardi type » retiré, offre et tarif côte à côte avec la comparaison « moins cher qu’une heure de tutorat », FAQ en grand, pied de page blanc avec logo visible, colonnes et icônes sociales.
 
 ## Vérifications exécutées
 
