@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { legalLinks } from "../legal";
 import type { LeadInput } from "../data/gateway";
+import { landingText, loadLang, saveLang, type Lang } from "../landing-text";
 type Props = {
   submitLead: (lead: LeadInput) => Promise<void>;
   demoEnabled: boolean;
@@ -404,127 +405,14 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
       hero.removeEventListener("pointerleave", reset);
     };
   }, []);
-  const problems = [
-    [
-      "« Et la socialisation ? »",
-      "Trouver d'autres familles près de chez vous, des sorties régulières et des amis pour vos enfants ne devrait pas dépendre de la chance.",
-    ],
-    [
-      "L'incertitude des démarches",
-      "Avis, projet d'apprentissage, bilans, épreuves : le cadre québécois est précis mais dispersé. On avance en craignant d'avoir manqué quelque chose.",
-    ],
-    [
-      "Des ressources partout, et nulle part",
-      "Groupes Facebook, PDF gouvernementaux, blogues : des heures à chercher, sans savoir ce qui est fiable ni à jour.",
-    ],
-    [
-      "Une matière qui bloque",
-      "Les fractions, la grammaire, les sciences : parfois il faut un coup de main extérieur, sans renoncer à enseigner soi-même.",
-    ],
-    [
-      "Le temps et la charge mentale",
-      "Planifier, garder des traces, préparer les bilans, tout en vivant. Sans outil pensé pour la famille, tout repose sur des cahiers et la mémoire.",
-    ],
-  ];
-  const solutions = [
-    [
-      "Une communauté près de chez vous",
-      "Carte des familles par ville, groupes, messages privés, rencontres en semaine et le week-end.",
-    ],
-    [
-      "Des cours pour les parents",
-      "Démarrer, bâtir son projet d'apprentissage, planifier, préparer les bilans. Écrits pour le Québec, avec modèles.",
-    ],
-    [
-      "Les ressources officielles, expliquées",
-      "Chaque lien gouvernemental accompagné de nos repères, daté et classé par étape.",
-    ],
-    [
-      "Tuteurs, conseillers et coachs",
-      "Un calendrier de créneaux réels, une réservation confirmée tout de suite, un compte rendu après la séance.",
-    ],
-    [
-      "L'organisation de la famille",
-      "Semaine par enfant, programme importé et réparti, portfolio privé, résultats pondérés, calendrier importé.",
-    ],
-    [
-      "Des examens d'entraînement",
-      "Chronométrés, corrigés avec explications, résultats suivis par enfant.",
-    ],
-  ];
-  const stack = [
-    ["Cours pour parents, modèles et mises à jour", "300 $ / an"],
-    ["Deux rencontres par année avec un conseiller aux démarches", "200 $"],
-    [
-      "Organisation familiale : semaine, programme, portfolio, résultats",
-      "120 $ / an",
-    ],
-    ["Examens d'entraînement corrigés", "90 $ / an"],
-    ["Bibliothèque de ressources officielles expliquées", "60 $ / an"],
-    ["Communauté, carte des familles, rencontres, messages", "sans prix"],
-    ["Agenda des tuteurs et coachs vérifiés, comptes rendus", "sans prix"],
-  ];
-  const faq = [
-    [
-      "ParentEd est-il une école ?",
-      "Non. ParentEd accompagne les parents qui enseignent à la maison. Le parent reste responsable de l'enseignement et des démarches; les sources officielles du ministère font foi. Nous ne délivrons ni diplôme ni garantie de conformité.",
-    ],
-    [
-      "Combien ça coûte aujourd'hui ?",
-      "Rien pendant la phase pilote : les familles fondatrices ont accès à tout, gratuitement, en échange de leurs retours. Le tarif de lancement prévu ensuite est de 49 $ par mois, sans engagement, annulable en deux clics. Aucun paiement n'est pris dans l'application pour l'instant.",
-    ],
-    [
-      "Le tutorat est-il compris ?",
-      "Les rencontres avec un conseiller aux démarches sont comprises. Les tuteurs et coachs sont des professionnels indépendants : ils fixent leur tarif (souvent 45 à 65 $ l'heure) et facturent directement la famille. ParentEd vérifie les qualifications et gère l'agenda, sans commission.",
-    ],
-    [
-      "Où vont les données de mes enfants ?",
-      "Dans votre espace privé, protégé par des règles d'accès famille par famille. L'équipe ParentEd n'y a pas accès par l'application. Aucun profil public d'enfant, jamais d'adresse sur la carte. Politique de confidentialité conforme à la Loi 25.",
-    ],
-    [
-      "Faut-il habiter Montréal ?",
-      "Non. La communauté grandit ville par ville au Québec; plus il y a de familles dans votre secteur, plus la carte et les rencontres deviennent utiles. Les cours, ressources, examens et rendez-vous en ligne fonctionnent partout.",
-    ],
-    [
-      "Puis-je essayer avant ?",
-      demoEnabled
-        ? "Oui : la démonstration avec une famille fictive est ouverte, sans compte. Vous pouvez aussi réserver un appel de 20 minutes."
-        : "Réservez un appel de 20 minutes : nous vous montrons la plateforme et répondons à vos questions.",
-    ],
-  ];
+  const [lang, setLang] = useState<Lang>(loadLang);
+  const t = landingText[lang];
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    saveLang(lang);
+  }, [lang]);
+  const tools = t.tools.items;
   const [open, setOpen] = useState(0);
-  const tools = [
-    [
-      "accueil",
-      "Accueil",
-      "Votre semaine en un coup d'œil : prochain rendez-vous, agenda, météo des sorties, progrès des enfants, raccourcis. Chaque widget se déplace ou se masque.",
-    ],
-    [
-      "semaine",
-      "Ma semaine",
-      "Le planning par enfant, le programme importé et réparti sur vos jours d'école, les séances de tutorat et vos activités, au même endroit.",
-    ],
-    [
-      "carte",
-      "Carte des familles",
-      "Les familles par ville, les rencontres à venir et les tuteurs, sur une carte. Un clic pour écrire à une famille ou s'inscrire à une sortie.",
-    ],
-    [
-      "rendezvous",
-      "Rendez-vous",
-      "Tuteurs, conseillers et coachs vérifiés, avec leurs créneaux réels. La réservation est confirmée tout de suite; le compte rendu arrive après la séance.",
-    ],
-    [
-      "examens",
-      "Examens",
-      "Des examens d'entraînement chronométrés et corrigés, résultat enregistré par enfant.",
-    ],
-    [
-      "resultats",
-      "Résultats",
-      "Notes pondérées, moyenne générale et par matière, courbes d'évolution. Des repères pour la famille, pas un bulletin officiel.",
-    ],
-  ] as const;
   const [tool, setTool] = useState(0);
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -538,18 +426,38 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
           <img src="/parented-logo.png" alt="parentEd" />
         </a>
         <nav aria-label="Sections">
-          <a href="#probleme">Le problème</a>
-          <a href="#solution">La solution</a>
-          <a href="#outils">Les outils</a>
-          <a href="#offre">L'offre et le tarif</a>
-          <a href="#faq">Questions</a>
+          <a href="#probleme">{t.nav.problem}</a>
+          <a href="#solution">{t.nav.solution}</a>
+          <a href="#outils">{t.nav.tools}</a>
+          <a href="#offre">{t.nav.offer}</a>
+          <a href="#faq">{t.nav.faq}</a>
         </nav>
         <div className="landing-nav-actions">
+          <div
+            className="lang-switch"
+            role="group"
+            aria-label="Langue / Language"
+          >
+            <button
+              className={lang === "fr" ? "active" : ""}
+              onClick={() => setLang("fr")}
+              aria-pressed={lang === "fr"}
+            >
+              FR
+            </button>
+            <button
+              className={lang === "en" ? "active" : ""}
+              onClick={() => setLang("en")}
+              aria-pressed={lang === "en"}
+            >
+              EN
+            </button>
+          </div>
           <a href="#connexion" className="text-link">
-            Se connecter
+            {t.nav.login}
           </a>
           <a href="#appel" className="button pop">
-            Réserver un appel
+            {t.nav.call}
           </a>
         </div>
       </header>
@@ -560,27 +468,20 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
       >
         <div className="hero-copy">
           <h1>
-            L'école à la maison, <span>sans être seul.</span>
+            {t.hero.title} <span>{t.hero.accent}</span>
           </h1>
-          <p className="hero-sub">
-            Des familles près de chez vous, des cours pour vous, des repères
-            clairs pour les démarches et un coup de main quand une matière
-            bloque. En un seul espace, pour les parents-éducateurs du Québec.
-          </p>
+          <p className="hero-sub">{t.hero.sub}</p>
           <div className="hero-actions">
             <a href="#appel" className="button pop big">
-              Réserver un appel gratuit <ArrowRight size={18} />
+              {t.hero.cta} <ArrowRight size={18} />
             </a>
             <a href="#connexion" className="button ghost big">
-              {demoEnabled ? "Voir la démonstration" : "Se connecter"}
+              {demoEnabled ? t.hero.demo : t.hero.login}
             </a>
           </div>
-          <p className="hero-trust">
-            Phase pilote gratuite · Sans engagement · Données familiales privées
-          </p>
+          <p className="hero-trust">{t.hero.trust}</p>
         </div>
         <div className="scene" aria-hidden="true">
-          <div className="sun" />
           <svg className="birds" viewBox="0 0 180 80">
             <g className="bird b1">
               <path
@@ -614,12 +515,14 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
           <div className="mist m2" />
           <div className="hill back" />
           <div className="hill middle" />
+          <div className="kids back">
+            <Kid pose="read" color="#1d4ed8" className="k-read" />
+            <Kid pose="ball" color="#7ed37a" className="k-ball" />
+          </div>
           <div className="hill front" />
           <div className="kids">
-            <Kid pose="read" color="#1d4ed8" className="k-read" />
             <Kid pose="kite" color="#ff7a3d" className="k-kite" />
             <Kid pose="jump" color="#ffd166" className="k-jump" />
-            <Kid pose="ball" color="#7ed37a" className="k-ball" />
             <Kid pose="teach" color="#7ed37a" className="k-teach" />
           </div>
           <div className="floaters">
@@ -645,16 +548,13 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
       </section>
       <section id="probleme" className="landing-section problem">
         <Reveal>
-          <h2>
-            Enseigner à la maison est un beau choix. Le faire seul, c'est
-            épuisant.
-          </h2>
+          <h2>{t.problem.title}</h2>
           <p className="section-lead">
             Cinq difficultés que les familles nous décrivent, encore et encore.
           </p>
         </Reveal>
         <div className="plain-grid">
-          {problems.map(([title, text]) => (
+          {t.problem.items.map(([title, text]) => (
             <Reveal key={title} className="plain-item">
               <h3>{title}</h3>
               <p>{text}</p>
@@ -664,13 +564,10 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
       </section>
       <section id="solution" className="landing-section solution">
         <Reveal>
-          <h2>
-            Un seul espace pour se former, s'organiser, trouver du soutien et
-            rencontrer des familles.
-          </h2>
+          <h2>{t.solution.title}</h2>
         </Reveal>
         <div className="plain-grid three">
-          {solutions.map(([title, text]) => (
+          {t.solution.items.map(([title, text]) => (
             <Reveal key={title} className="plain-item check">
               <Check size={20} />
               <div>
@@ -683,11 +580,8 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
       </section>
       <section id="outils" className="landing-section tools">
         <Reveal>
-          <h2>Une plateforme qui a tous les outils dont vous avez besoin.</h2>
-          <p className="section-lead">
-            Ce sont de vraies captures de ParentEd, avec une famille de
-            démonstration.
-          </p>
+          <h2>{t.tools.title}</h2>
+          <p className="section-lead">{t.tools.lead}</p>
         </Reveal>
         <Reveal>
           <div
@@ -718,7 +612,7 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
               <img
                 key={key}
                 src={`/images/app-${key}.jpg`}
-                alt={`Capture d'écran de ParentEd : ${tools[i][1]}`}
+                alt={`${t.tools.alt} ${tools[i][1]}`}
                 className={tool === i ? "show" : ""}
                 loading="eager"
               />
@@ -729,16 +623,13 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
       </section>
       <section id="offre" className="landing-section offer">
         <Reveal>
-          <h2>
-            Tout ce qu'il faut pour une année d'école maison sereine, pour moins
-            que le prix d'une heure de tutorat par semaine.
-          </h2>
+          <h2>{t.offer.title}</h2>
         </Reveal>
         <div className="offer-grid">
           <Reveal className="offer-stack">
-            <h3>Ce que comprend l'accompagnement ParentEd</h3>
+            <h3>{t.offer.stackTitle}</h3>
             <ul>
-              {stack.map(([item, value]) => (
+              {t.offer.stack.map(([item, value]) => (
                 <li key={item}>
                   <Check size={18} />
                   <span>{item}</span>
@@ -747,59 +638,41 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
               ))}
             </ul>
             <div className="offer-total">
-              <span>Valeur estimée</span>
-              <strong>plus de 770 $ par année</strong>
+              <span>{t.offer.totalLabel}</span>
+              <strong>{t.offer.total}</strong>
             </div>
             <div className="offer-bonus">
-              <strong>Bonus familles fondatrices</strong>
-              <p>
-                Accès gratuit pendant toute la phase pilote, un appel de
-                démarrage avec un conseiller, et vos idées qui façonnent la
-                plateforme. 50 places au Québec, puis liste d'attente.
-              </p>
+              <strong>{t.offer.bonusTitle}</strong>
+              <p>{t.offer.bonus}</p>
             </div>
           </Reveal>
           <Reveal className="price-card">
-            <p className="price-label">Tarif de lancement prévu</p>
+            <p className="price-label">{t.offer.priceLabel}</p>
             <div className="price">
-              <strong>49 $</strong>
-              <span>par mois, par famille</span>
+              <strong>{t.offer.price}</strong>
+              <span>{t.offer.per}</span>
             </div>
-            <p className="price-cheaper">
-              Moins cher qu'une seule heure de tutorat privé (45 à 65 $) et sans
-              commune mesure avec une école privée (plusieurs milliers de
-              dollars par année).
-            </p>
+            <p className="price-cheaper">{t.offer.cheaper}</p>
             <ul>
-              {[
-                "Tout l'accompagnement ci-contre, sans limite",
-                "Sans engagement, annulable en deux clics",
-                "Phase pilote : 0 $ pour les familles fondatrices",
-                "Aucun paiement dans l'application pour l'instant",
-              ].map((x) => (
+              {t.offer.includes.map((x) => (
                 <li key={x}>
                   <Check size={16} /> {x}
                 </li>
               ))}
             </ul>
             <a href="#appel" className="button pop big">
-              Réserver ma place <ArrowRight size={18} />
+              {t.offer.cta} <ArrowRight size={18} />
             </a>
-            <p className="price-guarantee">
-              Notre engagement : remboursement intégral si le service est
-              indisponible par notre faute; vos données restent les vôtres et
-              sont exportables à tout moment. Les séances de tutorat sont
-              facturées par les intervenants, sans commission.
-            </p>
+            <p className="price-guarantee">{t.offer.guarantee}</p>
           </Reveal>
         </div>
       </section>
       <section id="faq" className="landing-section faq">
         <Reveal>
-          <h2>Questions fréquentes</h2>
+          <h2>{t.faq.title}</h2>
         </Reveal>
         <div className="faq-list">
-          {faq.map(([q, a], i) => (
+          {t.faq.items.map(([q, a], i) => (
             <Reveal key={q}>
               <button
                 className={`faq-item ${open === i ? "open" : ""}`}
@@ -816,23 +689,18 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
       </section>
       <section id="appel" className="landing-section contact">
         <Reveal>
-          <h2>Réservez un appel de 20 minutes.</h2>
-          <p className="section-lead">
-            Un membre de l'équipe vous montre la plateforme, répond à vos
-            questions sur les démarches et vous dit si ParentEd convient à votre
-            famille. Sans pression, sans engagement. Réponse sous deux jours
-            ouvrables.
-          </p>
+          <h2>{t.contact.title}</h2>
+          <p className="section-lead">{t.contact.lead}</p>
         </Reveal>
         <Reveal>
-          <LeadForm submitLead={submitLead} mode={mode} />
+          <LeadForm submitLead={submitLead} mode={mode} t={t.contact} />
         </Reveal>
       </section>
       <footer className="landing-footer">
         <div className="footer-grid">
           <div className="footer-brand">
             <img src="/parented-logo.png" alt="parentEd" />
-            <p>Accompagner les parents, apprendre en famille.</p>
+            <p>{t.footer.tagline}</p>
             <div className="social">
               <a
                 href="#"
@@ -865,21 +733,22 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
             </div>
           </div>
           <div>
-            <h4>ParentEd</h4>
-            <a href="#probleme">Le problème</a>
-            <a href="#solution">La solution</a>
-            <a href="#offre">L'offre et le tarif</a>
-            <a href="#faq">Questions fréquentes</a>
+            <h4>{t.footer.product}</h4>
+            <a href="#probleme">{t.nav.problem}</a>
+            <a href="#solution">{t.nav.solution}</a>
+            <a href="#outils">{t.nav.tools}</a>
+            <a href="#offre">{t.nav.offer}</a>
+            <a href="#faq">{t.footer.faq}</a>
           </div>
           <div>
-            <h4>Espace membre</h4>
-            <a href="#connexion">Se connecter</a>
-            <a href="#connexion">Créer un compte</a>
-            {demoEnabled && <a href="#connexion">Voir la démonstration</a>}
-            <a href="#appel">Réserver un appel</a>
+            <h4>{t.footer.member}</h4>
+            <a href="#connexion">{t.footer.login}</a>
+            <a href="#connexion">{t.footer.signup}</a>
+            {demoEnabled && <a href="#connexion">{t.footer.demo}</a>}
+            <a href="#appel">{t.footer.call}</a>
           </div>
           <div>
-            <h4>Légal</h4>
+            <h4>{t.footer.legal}</h4>
             {legalLinks.map((l) => (
               <a key={l.href} href={l.href}>
                 {l.label}
@@ -887,14 +756,14 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
             ))}
           </div>
           <div>
-            <h4>Contact</h4>
+            <h4>{t.footer.contact}</h4>
             <a href="#appel">
-              <Phone size={14} /> Réserver un appel
+              <Phone size={14} /> {t.footer.call}
             </a>
             <a href="#appel">
-              <Mail size={14} /> Nous écrire
+              <Mail size={14} /> {t.footer.write}
             </a>
-            <p className="footer-note">Québec, Canada</p>
+            <p className="footer-note">{t.footer.place}</p>
           </div>
         </div>
         <div className="footer-bottom">
@@ -913,9 +782,11 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
 function LeadForm({
   submitLead,
   mode,
+  t,
 }: {
   submitLead: (lead: LeadInput) => Promise<void>;
   mode: Props["mode"];
+  t: (typeof landingText)["fr"]["contact"];
 }) {
   const [kind, setKind] = useState<"appel" | "liste">("appel");
   const [state, setState] = useState<{
@@ -955,19 +826,11 @@ function LeadForm({
         <span className="done-mark">
           <Check size={26} />
         </span>
-        <h3>
-          {kind === "appel" ? "Demande reçue !" : "Vous êtes sur la liste !"}
-        </h3>
-        <p>
-          {kind === "appel"
-            ? "Nous vous écrivons sous deux jours ouvrables pour fixer l'appel."
-            : "Nous vous écrivons dès qu'une place de famille fondatrice se libère."}
-        </p>
+        <h3>{kind === "appel" ? t.doneCall : t.doneList}</h3>
+        <p>{kind === "appel" ? t.doneCallText : t.doneListText}</p>
         {mode !== "supabase" && (
           <small className="muted">
-            {mode === "none"
-              ? "Site non relié à la base : cette demande n'a pas été transmise."
-              : "Mode démonstration : la demande est enregistrée dans ce navigateur seulement."}
+            {mode === "none" ? t.noneNote : t.demoNote}
           </small>
         )}
       </div>
@@ -980,14 +843,14 @@ function LeadForm({
           className={kind === "appel" ? "active" : ""}
           onClick={() => setKind("appel")}
         >
-          Réserver un appel
+          {t.tabCall}
         </button>
         <button
           type="button"
           className={kind === "liste" ? "active" : ""}
           onClick={() => setKind("liste")}
         >
-          Liste des familles fondatrices
+          {t.tabList}
         </button>
       </div>
       {state.error && (
@@ -997,17 +860,17 @@ function LeadForm({
       )}
       <div className="form-grid">
         <label>
-          Prénom
+          {t.name}
           <input
             name="name"
             maxLength={120}
             required
-            placeholder="Votre prénom"
+            placeholder={t.namePh}
             autoComplete="given-name"
           />
         </label>
         <label>
-          Courriel
+          {t.email}
           <input
             name="email"
             type="email"
@@ -1020,19 +883,19 @@ function LeadForm({
         {kind === "appel" && (
           <>
             <label className="span-2">
-              Meilleur moment pour vous joindre
+              {t.preferred}
               <input
                 name="preferred"
                 maxLength={120}
-                placeholder="En soirée, mardi ou jeudi…"
+                placeholder={t.preferredPh}
               />
             </label>
             <label className="span-2">
-              Votre situation, en quelques mots (facultatif)
+              {t.message}
               <textarea
                 name="message"
                 maxLength={2000}
-                placeholder="Âges des enfants, où vous en êtes, ce qui vous préoccupe. Aucun renseignement sensible."
+                placeholder={t.messagePh}
                 rows={3}
               />
             </label>
@@ -1047,17 +910,12 @@ function LeadForm({
         aria-hidden="true"
       />
       <button className="button pop big" disabled={state.busy}>
-        {state.busy
-          ? "Envoi…"
-          : kind === "appel"
-            ? "Demander un appel"
-            : "Rejoindre la liste"}{" "}
+        {state.busy ? t.sending : kind === "appel" ? t.sendCall : t.sendList}{" "}
         <ArrowRight size={18} />
       </button>
       <small className="muted">
-        En envoyant, vous acceptez notre{" "}
-        <a href="#legal/confidentialite">politique de confidentialité</a>.
-        Aucune infolettre sans votre accord.
+        {t.consent} <a href="#legal/confidentialite">{t.consentLink}</a>
+        {t.consentEnd}
       </small>
     </form>
   );

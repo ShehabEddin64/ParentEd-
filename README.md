@@ -58,7 +58,7 @@ npm run check:cloudflare
 | Assistant | Bouton « Besoin d’aide ? » : recherche dans les contenus et réponses aux questions fréquentes; réponses Claude à partir des contenus publics si la fonction `assistant` est déployée avec une clé, avec quotas par membre et global, journal des jetons et estimation de coût pour l’administration |
 | Mentions légales | Politique de confidentialité (Loi 25), témoins, conditions d’utilisation, paiement/annulation/remboursement, accessibles sans connexion; acceptation à l’inscription; liste de contrôle dans `docs/juridique.md` |
 | Préparation aux examens | Examens d’entraînement en ligne, chronométrés et corrigés avec explications; résultat enregistré par enfant; ressources de préparation; création par l’administration |
-| Page publique | Page d’accueil animée à la racine : problème, solution, offre, tarif prévu, FAQ, réservation d’appel et liste d’attente (table `leads`, lecture réservée à l’équipe) |
+| Page publique | Page d’accueil animée à la racine, en français et en anglais (bouton FR / EN) : problème, solution, offre, tarif prévu, FAQ, réservation d’appel et liste d’attente (table `leads`, lecture réservée à l’équipe) |
 | Accueil | Tableau de bord à widgets personnalisables (prochain rendez-vous, agenda, météo Open-Meteo, progrès des enfants, programme, cours, rencontre, communauté, portfolio, raccourcis); tableau de bord d’équipe pour l’administration |
 | Comptes | Connexion, inscription, confirmation par courriel, réinitialisation du mot de passe; **profil public** modifiable (prénom, ville, intérêts, présentation, visibilité sur la carte); rôles parent / tuteur / admin nommés en base |
 
