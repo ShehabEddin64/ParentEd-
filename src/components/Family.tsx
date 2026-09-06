@@ -2026,7 +2026,7 @@ function Results({
                     <td>
                       <strong>{percent(g.score, g.max)} %</strong>
                     </td>
-                    <td>×{g.weight}</td>
+                    <td>×{g.weight ?? 1}</td>
                     <td className="row-actions">
                       <button
                         className="icon-button"

@@ -11,7 +11,7 @@ import {
   type NotificationKind,
 } from "../domain";
 import type { AuthEvent, Gateway } from "./gateway";
-const key = "parented-demo-v3";
+const key = "parented-demo-v4";
 const sessionKey = "parented-demo-session";
 type Row = Tables[Table];
 const accounts: Record<string, string> = {
