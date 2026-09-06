@@ -15,7 +15,9 @@
     "seed:users": "node --env-file=.env.local scripts/seed-users.mjs",
     "format": "prettier --write src tests scripts vite.config.ts vitest.config.ts tsconfig.json package.json wrangler.jsonc",
     "format:check": "prettier --check src tests scripts vite.config.ts vitest.config.ts tsconfig.json package.json wrangler.jsonc",
-    "seed:content": "node scripts/build-seed.mjs"
+    "seed:content": "node scripts/build-seed.mjs",
+    "sql:bundle": "node scripts/build-seed.mjs && node scripts/bundle-sql.mjs",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.0",

@@ -1,12 +1,12 @@
 # ParentEd
 
-Première version locale en français pour accompagner les parents-éducateurs : cours et progression, organisation familiale, documents privés, ressources officielles, communauté, événements et administration des contenus.
+Espace membre en français pour les parents-éducateurs : cours pour parents avec modèles et questions, organisation familiale par enfant, portfolio privé, ressources officielles et favoris, communauté avec groupes régionaux et thématiques, rencontres (liste, calendrier, filtres, récurrence, propositions des membres, rappels), tutorat complémentaire (annuaire, disponibilités, réservation, séances hebdomadaires, comptes rendus) et administration des contenus.
 
-**État au 6 septembre 2026 :** démonstration fonctionnelle avec persistance dans le navigateur; adaptateur Supabase Auth/PostgreSQL/Storage et migrations implémentés. Aucun Supabase distant connecté. Supabase local ne peut pas démarrer sur la machine inspectée : Docker et Podman sont absents. Cloudflare Workers Static Assets compilé, contrôlé en dry-run et prévisualisé localement. Aucun site publié, aucun paiement activé.
+**État au 6 septembre 2026 :** toutes les fonctionnalités du périmètre de `docs/idee-du-service.md` sont implémentées et vérifiées en démonstration locale et dans le navigateur (ordinateur et mobile). L’adaptateur Supabase (Auth avec inscription et réinitialisation, PostgreSQL, Storage) et les migrations sont prêts; les règles SQL sont exécutées par 19 tests PostgreSQL. **Aucun projet Supabase distant ni site Cloudflare n’a encore été créé par l’équipe** : la marche à suivre complète est dans [docs/deploiement.md](docs/deploiement.md). Paiements, vidéo hébergée, carte embarquée, courriels avancés et IA restent différés.
 
 ## Démarrer immédiatement
 
-Prérequis : Node.js 22.13+ (Node 24.13.1 utilisé ici), npm.
+Prérequis : Node.js 22.13+ et npm.
 
 ```sh
 npm ci
@@ -14,68 +14,23 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Ouvrir http://127.0.0.1:5173 et choisir **Explorer avec Amélie**. `VITE_ENABLE_DEMO=true` active explicitement la démonstration dans les builds. En serveur de développement, elle est aussi disponible sans fichier d’environnement.
+Ouvrir http://127.0.0.1:5173 et choisir **Explorer avec Amélie**. Quatre profils fictifs : Amélie (famille avec Lina et Adam), Sami (autre famille), Nadia (tutrice), Camille (administration). Choix de profil local, **pas une authentification réelle**. Les données de démonstration ne quittent pas le navigateur : n’y déposez aucun renseignement personnel. Un nouveau profil de navigateur donne une démonstration vierge; pour réinitialiser, effacer les données du site.
 
-Trois profils fictifs sont proposés : Amélie, Sami (autre famille), Camille (administration). Il s’agit d’un choix de profil local, **pas d’une authentification réelle**. Les données de démonstration ne quittent pas le navigateur. Ne pas y déposer de renseignements personnels. Les contrôles du simulateur ne constituent pas une frontière de sécurité : une personne ayant accès à ce navigateur peut lire son stockage.
+## Publier : Supabase et Cloudflare
 
-La progression, les activités, les réponses et les inscriptions persistent après rechargement et déconnexion. Chaque origine/port a son stockage indépendant : 5173 et 8787 ont deux démonstrations distinctes. Un nouveau profil de navigateur donne une démonstration vierge. Pour réinitialiser un essai, effacer les données du site dans les outils du navigateur après avoir exporté ce qui doit être conservé.
+Suivre [docs/deploiement.md](docs/deploiement.md). En résumé :
 
-## Activer Supabase local
+1. Créer un projet Supabase et exécuter **`supabase/parented-complet.sql`** dans SQL Editor (migrations + contenus fictifs; section seed supprimable).
+2. Renseigner Site URL et Redirect URLs dans Authentication.
+3. Copier l’URL du projet et la clé publishable dans `.env.production` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_ENABLE_DEMO`).
+4. `npx wrangler login` puis `npm run deploy`.
+5. Nommer admin et tuteurs par `update public.profiles set role = ...` avec un UUID vérifié.
 
-1. Installer et démarrer un moteur compatible Docker. La CLI Supabase est une dépendance du projet.
-2. Démarrer la stack et appliquer les migrations/données fictives :
+Ne jamais mettre une clé `service_role` dans une variable `VITE_*`. La clé publishable est publique; la sécurité repose sur Auth et RLS.
 
-```sh
-npm run supabase:start
-npm run supabase:reset
-```
+## Supabase local (facultatif)
 
-`supabase:reset` efface **la base locale** du projet. Ne pas l’utiliser sur des données à conserver.
-
-3. Reporter **localement**, sans partager de secrets dans une conversation, les valeurs fournies par `npx supabase status` dans `.env.local` :
-
-```dotenv
-VITE_SUPABASE_URL=http://127.0.0.1:54321
-VITE_SUPABASE_ANON_KEY=<clé anon ou publishable locale>
-VITE_ENABLE_DEMO=false
-SUPABASE_SERVICE_ROLE_KEY=<clé service locale, pour le script uniquement>
-DEMO_PASSWORD=<mot de passe choisi, au moins 12 caractères>
-```
-
-4. Créer les trois comptes locaux et leurs données :
-
-```sh
-npm run seed:users
-npm run dev
-```
-
-Comptes : `amelie@demo.parented.test`, `sami@demo.parented.test`, `admin@demo.parented.test`. Ils utilisent le mot de passe défini localement dans `DEMO_PASSWORD`. Le script refuse un hôte distant et ne journalise pas de secrets. Il est idempotent; pour un compte déjà créé, son mot de passe existant est conservé.
-
-5. Ouvrir l’application, se connecter avec courriel/mot de passe, terminer une leçon, recharger, se déconnecter/reconnecter et vérifier la progression. Tester la famille Sami et l’administration; voir [le protocole de recette](docs/recette.md).
-
-Studio : http://127.0.0.1:54323. Boîte de courriels locale : http://127.0.0.1:54324. La confirmation de courriel est désactivée **uniquement dans la configuration locale**. Les comptes sont fournis par l’équipe; pas de parcours public d’inscription/récupération de mot de passe dans cette V1.
-
-### Projet Supabase géré
-
-Appliquer les migrations versionnées à un projet choisi par le propriétaire, puis renseigner l’URL et la clé publique dans `.env.local`. Ne pas charger `seed.sql` dans une base de production sans avoir choisi explicitement les contenus de démonstration. Créer les comptes avec les outils d’administration Supabase. Le trigger crée toujours un profil **parent** et une famille indépendante; il ignore les rôles/familles envoyés dans les métadonnées.
-
-La nomination d’un administrateur se fait exclusivement par un opérateur autorisé, dans la base, après vérification du compte : `update public.profiles set role = 'admin' where id = '<uuid vérifié>';`. Aucun bouton ni droit client de modification du rôle. Une famille correspond à un compte au démarrage; invitations d’un deuxième parent non implémentées.
-
-Ne jamais utiliser une clé `service_role`/secret dans `VITE_*`. Les variables `VITE_*` sont incluses dans le JavaScript public. La clé anon/publishable est volontairement publique : la sécurité repose sur Auth et RLS. `.env.local` est exclu de Git.
-
-## Cible Cloudflare, sans publier
-
-L’espace membre utilise React + TypeScript et Vite. Il est servi comme SPA par **Cloudflare Workers Static Assets**; les appels authentifiés vont directement à Supabase et sont contrôlés par RLS. Pas de serveur Next.js ni d’adaptateur OpenNext requis pour ce périmètre.
-
-```sh
-npm run build
-npm run check:cloudflare
-npm run preview:cloudflare
-```
-
-Ouvrir http://127.0.0.1:8787. `check:cloudflare` relance le build puis exécute `wrangler deploy --dry-run` : **aucun déploiement**. La preview exécute la cible locale Wrangler/workerd. Les valeurs `VITE_*` sont figées au build; reconstruire après tout changement de configuration. `wrangler.jsonc` contient le nom, la date de compatibilité et le repli SPA. `public/_headers` fournit les en-têtes de sécurité, dont une CSP compatible Supabase standard et local. Un domaine Supabase personnalisé nécessiterait l’ajustement de `connect-src`.
-
-Pour une future publication, désactiver la démonstration, terminer la recette Supabase, préparer le projet Cloudflare et ses paramètres, puis décider du déploiement. Aucun compte Cloudflare, domaine ou intégration payante n’a été créé.
+Nécessite Docker. `npm run supabase:start`, `npm run supabase:reset` (efface la base **locale**), reporter les valeurs de `npx supabase status` dans `.env.local` avec `SUPABASE_SERVICE_ROLE_KEY` et `DEMO_PASSWORD` (12 caractères minimum), puis `npm run seed:users` crée les quatre comptes `*@demo.parented.test` et leurs données. Studio : http://127.0.0.1:54323; courriels locaux : http://127.0.0.1:54324.
 
 ## Vérifications
 
@@ -86,39 +41,41 @@ npm run format:check
 npm run check:cloudflare
 ```
 
-- 7 tests métier/adaptateur de démonstration : persistance, deux familles, permissions, échec de stockage, dates et validation.
-- 14 tests exécutent **la migration réelle dans PostgreSQL via PGlite** : RLS anonyme/parent/admin, progression, brouillons, fichiers, documents, modération, inscriptions, restauration transactionnelle de tâches.
-- Auth et Storage sont représentés par des schémas minimaux dans ces tests. Cela teste les règles SQL; **cela ne valide pas GoTrue, PostgREST, les JWT, le service de fichiers ni ses limites MIME/taille en bout en bout**. Une recette sur Supabase réel reste obligatoire.
-- Parcours navigateur contrôlés manuellement via l’outil navigateur : détails dans [docs/recette.md](docs/recette.md). Pas de suite Playwright automatisée exécutée.
+- 11 tests métier et adaptateur de démonstration : persistance, isolation entre familles, tutorat, propositions, récurrence des rencontres, fichiers iCalendar.
+- 19 tests exécutent **les deux migrations dans PostgreSQL via PGlite** : RLS parent/admin/tuteur, familles, fichiers, bookings, comptes rendus, favoris, groupes, questions, propositions.
+- Auth et Storage sont représentés par des schémas minimaux dans ces tests : ils valident les règles SQL, pas GoTrue/PostgREST/Storage en bout en bout. La recette sur Supabase réel ([docs/recette.md](docs/recette.md)) reste obligatoire avant un pilote.
+
+## Fonctionnalités
+
+| Volet | Réalisé |
+| --- | --- |
+| Formation des parents | 4 cours, leçons avec exercice, modèle réutilisable (copie et .txt), lien vidéo optionnel, note personnelle, questions à l’équipe avec réponses publiques, progression persistante, administration complète |
+| Ressources officielles | Bibliothèque par étape, recherche, favoris, source et date de vérification |
+| Communauté | Discussions, réponses, groupes régionaux et thématiques (rejoindre, filtrer, publier dans un groupe), signalement et modération |
+| Rencontres | Liste et calendrier, filtres région / semaine ou week-end / gratuit / mes inscriptions, annonces à la une, récurrence hebdomadaire, bimensuelle ou mensuelle, propositions des membres vérifiées par l’équipe, rappel .ics, lien vers une carte externe |
+| Tutorat complémentaire | Annuaire de tuteurs (matières, qualifications, tarif indicatif, mode), disponibilités, demande de séance ponctuelle ou hebdomadaire, confirmation par le tuteur, séances affichées dans la semaine familiale, compte rendu pédagogique visible par la famille, vue de coordination pour l’équipe |
+| Organisation familiale | Semaine par enfant, plan hebdomadaire d’intentions, fiches enfants, livres et ressources associés, portfolio privé (notes datées et fichiers avec contexte), export JSON |
+| Comptes | Connexion, inscription, confirmation par courriel, réinitialisation du mot de passe; rôles parent / tuteur / admin nommés en base |
 
 ## Architecture
 
-- `src/domain.ts` : types et règles indépendantes du fournisseur.
-- `src/data/gateway.ts` : contrat de données.
-- `src/data/supabase.ts` : seuls appels Supabase applicatifs.
-- `src/data/demo.ts` : simulation locale explicite, séparée de Supabase.
-- `src/data/seed.ts` : profils et contenus fictifs; `npm run seed:content` régénère le seed SQL de contenu.
-- `src/components/` : cours, planning/dossier privé, communauté/événements/ressources, administration.
-- `supabase/migrations/` : schéma, trigger de profil, privilèges, RLS et bucket privé.
-- `tests/` : vérifications métier et SQL.
+- `src/domain.ts` : types, règles métier, récurrence, iCalendar.
+- `src/data/gateway.ts` : contrat de données; `supabase.ts` seuls appels Supabase; `demo.ts` simulateur local avec les mêmes règles d’accès; `seed.ts` données fictives.
+- `src/components/` : Courses, Family, Social (ressources, communauté, rencontres), Tutoring, Admin.
+- `supabase/migrations/` : deux migrations versionnées; `supabase/parented-complet.sql` généré par `npm run sql:bundle`.
+- `tests/` : métier et SQL. `scripts/` : seed, comptes locaux, bundle SQL.
 
-Versions résolues consignées dans `package-lock.json` : React 19.2.8, Vite 7.3.6, TypeScript 5.9.3, Supabase JS 2.115.0, CLI Supabase 2.116.0 et Wrangler 4.129.0. Le choix de Vite 7 est volontaire : version compatible installée et testée, sans obligation d’adopter Vite 8. Documentation consultée : [Cloudflare React/Vite](https://developers.cloudflare.com/workers/framework-guides/web-apps/react/), [Workers Static Assets](https://developers.cloudflare.com/workers/static-assets/), [Supabase local](https://supabase.com/docs/guides/local-development/cli-workflows), [RLS Supabase](https://supabase.com/docs/guides/database/postgres/row-level-security).
+Hébergement : React + TypeScript + Vite servi en SPA par Cloudflare Workers Static Assets (`wrangler.jsonc`); appels authentifiés directement vers Supabase, contrôlés par RLS. En-têtes de sécurité et CSP dans `public/_headers`.
 
-## Marque
+## Limites connues
 
-Le logotype `parentEd` provient d’une extraction rectangulaire du PNG fourni dans `brand/`, sans redessin. Le PDF est une planche matricielle avec une couche texte; aucun logo vectoriel autonome n’était disponible. Les actifs `public/parented-logo.png` et `public/favicon.png` gardent un fond blanc. Ce sont des extractions raster, pas des masters vectoriels. Couleurs relevées dans les pixels dominants : bleu `#1D4ED8`, accent `#7CB0FF`. Les illustrations de cours sont des compositions CSS/SVG simples; aucune photo externe ni police tierce téléchargée.
+- Chargement plafonné à 1 000 lignes par table, sans pagination ni temps réel.
+- Une famille par compte; pas d’invitation d’un second parent.
+- Rappels par fichier .ics seulement : pas de courriel ou de notification automatique.
+- Carte : lien externe par rencontre, pas de carte embarquée.
+- Vidéos : liens externes, pas d’hébergement.
+- Tutorat : aucune facturation dans l’application; le tuteur facture directement la famille. Le rôle tuteur est attribué par un opérateur.
+- Contenus pédagogiques fictifs à relire avant un vrai lancement.
+- Démonstration localStorage non sécurisée pour de vraies données.
 
-## Limites et suites
-
-- Supabase Auth/Storage complet reste à connecter et à tester. La démonstration locale est actuellement le seul parcours de connexion exécuté.
-- Cours textuels fictifs à relire pédagogiquement; pas de vidéo hébergée. Ressources liées issues du registre fourni, dates de relevé conservées, sans nouvelle validation juridique.
-- Chargement limité à 1 000 lignes par table, sans pagination; convenable pour ce prototype, à remplacer avant montée en charge.
-- Planning éditable, pas de récurrence/notifications, ni invitation de second parent. Les heures d’événements sont affichées comme heures locales du Québec.
-- Documents : 5 Mo côté Supabase, 1 Mo en démo pour limiter localStorage. Suppression fichiers/métadonnées en deux opérations, pas une transaction distribuée; prévoir un contrôle des fichiers orphelins.
-- Sauvegarde/export décrit dans [docs/sauvegarde-et-restauration.md](docs/sauvegarde-et-restauration.md); reprise complète Auth + Storage pas encore testée.
-- Paiements, IA, carte externe, tutorat/réservations de tuteurs, vidéo spécialisée et automatisations avancées différés.
-- Avant accueil de vraies familles : recette connectée, processus de comptes et récupération, contenus validés, politique de confidentialité et procédures de conservation/support adaptées au service.
-
-[État d’avancement](docs/progress.md) · [Démonstration jury](docs/demo-jury.md) · [Décisions](docs/ParentEd-decisions-et-concessions.md)
-
-Un dépôt Git local dédié a été initialisé à cette racine. Le dépôt vide préexistant `ParentEd/` est conservé et exclu; aucun push ni dépôt distant créé.
+[État d’avancement](docs/progress.md) · [Démonstration jury](docs/demo-jury.md) · [Déploiement](docs/deploiement.md) · [Décisions](docs/ParentEd-decisions-et-concessions.md)

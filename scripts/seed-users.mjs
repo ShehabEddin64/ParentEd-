@@ -26,12 +26,15 @@ const {
   error: listError,
 } = await client.auth.admin.listUsers();
 if (listError) throw listError;
-const mapping = {};
-for (const [name, email, oldId] of [
-  ["Amélie", "amelie@demo.parented.test", ids.parent],
-  ["Sami", "sami@demo.parented.test", ids.other],
-  ["Camille", "admin@demo.parented.test", ids.admin],
-]) {
+const accounts = [
+  ["Amélie", "amelie@demo.parented.test", ids.parent, "parent"],
+  ["Sami", "sami@demo.parented.test", ids.other, "parent"],
+  ["Camille", "admin@demo.parented.test", ids.admin, "admin"],
+  ["Nadia", "nadia@demo.parented.test", ids.tutor, "tutor"],
+];
+const userMap = {};
+const familyMap = {};
+for (const [name, email, oldId, role] of accounts) {
   let user = users.find((u) => u.email === email);
   if (!user) {
     const { data, error } = await client.auth.admin.createUser({
@@ -49,22 +52,52 @@ for (const [name, email, oldId] of [
     .eq("id", user.id)
     .single();
   if (error) throw error;
-  mapping[oldId] = profile;
-  if (oldId === ids.admin) {
+  userMap[oldId] = profile.id;
+  familyMap[seed.profiles.find((p) => p.id === oldId).family_id] =
+    profile.family_id;
+  if (role !== "parent") {
     const { error } = await client
       .from("profiles")
-      .update({ role: "admin" })
+      .update({ role })
       .eq("id", user.id);
     if (error) throw error;
   }
-  console.log(`${email} : compte local prêt`);
+  console.log(`${email} : compte local prêt (${role})`);
 }
-for (const table of ["tasks", "posts"])
+// Link the demo tutor account to its published tutor profile.
+{
+  const { error } = await client
+    .from("tutors")
+    .update({ profile_id: userMap[ids.tutor] })
+    .eq("id", ids.tutorNadia);
+  if (error) throw error;
+}
+// Family and personal rows, re-attributed to the local accounts.
+const personal = [
+  "children",
+  "week_plans",
+  "library_items",
+  "notes",
+  "tasks",
+  "group_members",
+  "posts",
+  "lesson_questions",
+  "bookings",
+  "tutor_reports",
+];
+for (const table of personal)
   for (const source of seed[table]) {
     const row = { ...source };
-    if (row.family_id) row.family_id = mapping[ids.parent].family_id;
-    if (row.user_id) row.user_id = mapping[row.user_id].id;
+    if (row.family_id) row.family_id = familyMap[row.family_id];
+    if (row.user_id) row.user_id = userMap[row.user_id];
     const { error } = await client.from(table).upsert(row);
     if (error) throw error;
   }
+{
+  const { error } = await client
+    .from("events")
+    .update({ created_by: userMap[ids.admin] })
+    .is("created_by", null);
+  if (error) throw error;
+}
 console.log("Données fictives chargées. Aucun secret affiché.");

@@ -7,9 +7,31 @@ import {
   type Tables,
   type Profile,
 } from "../domain";
-import type { Gateway } from "./gateway";
-const key = "parented-demo-v1";
+import type { AuthEvent, Gateway } from "./gateway";
+const key = "parented-demo-v2";
 const sessionKey = "parented-demo-session";
+type Row = Tables[Table];
+const accounts: Record<string, string> = {
+  "amelie@demo.parented.test": ids.parent,
+  "sami@demo.parented.test": ids.other,
+  "admin@demo.parented.test": ids.admin,
+  "nadia@demo.parented.test": ids.tutor,
+};
+/** Single-field uniqueness per person, mirroring the SQL unique constraints. */
+const personalUnique: Partial<Record<Table, string>> = {
+  progress: "lesson_id",
+  registrations: "event_id",
+  reports: "post_id",
+  favorites: "resource_id",
+  group_members: "group_id",
+  lesson_notes: "lesson_id",
+};
+const notAvailable = () =>
+  Promise.reject(
+    new Error(
+      "Cette action nécessite un compte réel : elle n’est pas disponible en démonstration.",
+    ),
+  );
 export class DemoGateway implements Gateway {
   mode = "demo" as const;
   constructor(private storage: Storage = localStorage) {}
@@ -43,18 +65,16 @@ export class DemoGateway implements Gateway {
     );
   }
   async login(email: string) {
-    const id =
-      email === "admin@demo.parented.test"
-        ? ids.admin
-        : email === "sami@demo.parented.test"
-          ? ids.other
-          : email === "amelie@demo.parented.test"
-            ? ids.parent
-            : null;
-    const p = this.read().profiles.find((p) => p.id === id);
+    const p = this.read().profiles.find((p) => p.id === accounts[email]);
     if (!p) throw new Error("Choisissez un des profils fictifs proposés.");
     this.storage.setItem(sessionKey, p.id);
     return p;
+  }
+  signup = notAvailable;
+  resetPassword = notAvailable;
+  updatePassword = notAvailable;
+  onAuthEvent(_listener: (event: AuthEvent) => void) {
+    return () => {};
   }
   async logout() {
     this.storage.removeItem(sessionKey);
@@ -64,19 +84,58 @@ export class DemoGateway implements Gateway {
     if (!p) throw new Error("Reconnectez-vous pour continuer.");
     return p;
   }
-  private visible(t: Table, row: Tables[Table], p: Profile) {
-    if (t === "profiles") return row.id === p.id;
-    if ("family_id" in row) return row.family_id === p.family_id;
-    if (["progress", "registrations"].includes(t))
-      return "user_id" in row && row.user_id === p.id;
-    if (t === "reports")
-      return "user_id" in row && (row.user_id === p.id || p.role === "admin");
-    if ("published" in row) return row.published || p.role === "admin";
-    if (t === "lessons" && "course_id" in row)
-      return this.read().courses.some(
-        (c) => c.id === row.course_id && (c.published || p.role === "admin"),
-      );
-    return true;
+  private tutorOf(data: Data, tutorId: string, p: Profile) {
+    return data.tutors.some((t) => t.id === tutorId && t.profile_id === p.id);
+  }
+  private visible(t: Table, row: Row, p: Profile, data: Data): boolean {
+    const admin = p.role === "admin";
+    switch (t) {
+      case "profiles":
+        return row.id === p.id;
+      case "bookings": {
+        const b = row as Tables["bookings"];
+        return (
+          b.family_id === p.family_id ||
+          admin ||
+          this.tutorOf(data, b.tutor_id, p)
+        );
+      }
+      case "tutor_reports": {
+        const r = row as Tables["tutor_reports"];
+        const b = data.bookings.find((b) => b.id === r.booking_id);
+        return Boolean(b && this.visible("bookings", b, p, data));
+      }
+      case "tutors": {
+        const tu = row as Tables["tutors"];
+        return tu.published || admin || tu.profile_id === p.id;
+      }
+      case "tutor_availability": {
+        const a = row as Tables["tutor_availability"];
+        const tu = data.tutors.find((x) => x.id === a.tutor_id);
+        return Boolean(tu && this.visible("tutors", tu, p, data));
+      }
+      case "events": {
+        const e = row as Tables["events"];
+        return e.published || admin || e.created_by === p.id;
+      }
+      case "lessons": {
+        const l = row as Tables["lessons"];
+        return data.courses.some(
+          (c) => c.id === l.course_id && (c.published || admin),
+        );
+      }
+      case "reports":
+        return (row as Tables["reports"]).user_id === p.id || admin;
+      case "progress":
+      case "registrations":
+      case "favorites":
+      case "lesson_notes":
+        return (row as { user_id: string }).user_id === p.id;
+      default:
+        if ("family_id" in row) return row.family_id === p.family_id;
+        if ("published" in row) return row.published || admin;
+        return true;
+    }
   }
   async load() {
     const p = await this.profile();
@@ -84,45 +143,92 @@ export class DemoGateway implements Gateway {
     return Object.fromEntries(
       tableNames.map((t) => [
         t,
-        data[t].filter((row) => this.visible(t, row, p)),
+        data[t].filter((row) => this.visible(t, row, p, data)),
       ]),
     ) as Data;
   }
   private permitted(
     t: Table,
-    row: Tables[Table],
+    row: Row,
     p: Profile,
     operation: "save" | "delete",
-  ) {
-    if (t === "profiles") return false;
-    if (["courses", "lessons", "events", "resources"].includes(t))
-      return p.role === "admin";
-    if ("family_id" in row) return row.family_id === p.family_id;
-    if ("user_id" in row)
-      return (
-        row.user_id === p.id ||
-        (operation === "delete" &&
-          p.role === "admin" &&
-          ["posts", "replies", "reports"].includes(t))
-      );
-    return false;
+    data: Data,
+    previous?: Row,
+  ): boolean {
+    const admin = p.role === "admin";
+    switch (t) {
+      case "profiles":
+        return false;
+      case "courses":
+      case "lessons":
+      case "resources":
+      case "groups":
+        return admin;
+      case "events": {
+        const e = row as Tables["events"];
+        return admin || (e.created_by === p.id && !e.published && !e.featured);
+      }
+      case "tutors": {
+        const tu = row as Tables["tutors"];
+        return admin || (operation === "save" && tu.profile_id === p.id);
+      }
+      case "tutor_availability":
+        return (
+          admin ||
+          this.tutorOf(data, (row as Tables["tutor_availability"]).tutor_id, p)
+        );
+      case "bookings": {
+        const b = row as Tables["bookings"];
+        if (admin || this.tutorOf(data, b.tutor_id, p)) return true;
+        if (b.family_id !== p.family_id || b.user_id !== p.id) return false;
+        if (operation === "delete") return b.status === "demandée";
+        if (!previous)
+          return (
+            b.status === "demandée" &&
+            data.tutors.some((t) => t.id === b.tutor_id && t.published)
+          );
+        return ["demandée", "annulée"].includes(b.status);
+      }
+      case "tutor_reports":
+        return (
+          admin ||
+          this.tutorOf(data, (row as Tables["tutor_reports"]).tutor_id, p)
+        );
+      case "lesson_questions": {
+        const q = row as Tables["lesson_questions"];
+        if (operation === "delete") return q.user_id === p.id || admin;
+        if (previous) return admin;
+        return q.user_id === p.id && q.answer === null;
+      }
+      case "group_members":
+        return (
+          (row as Tables["group_members"]).user_id === p.id ||
+          (operation === "delete" && admin)
+        );
+      case "posts":
+      case "replies":
+      case "reports":
+        return (
+          (row as { user_id: string }).user_id === p.id ||
+          (operation === "delete" && admin)
+        );
+      default:
+        if ("family_id" in row) return row.family_id === p.family_id;
+        if ("user_id" in row) return row.user_id === p.id;
+        return false;
+    }
   }
   async save<K extends Table>(t: K, row: Tables[K]) {
     const p = await this.profile();
     const data = this.read();
     const old = data[t].find((r) => r.id === row.id);
     if (
-      !this.permitted(t, row, p, "save") ||
-      (old && !this.permitted(t, old, p, "save"))
+      !this.permitted(t, row, p, "save", data, old) ||
+      (old && !this.permitted(t, old, p, "save", data, old))
     )
       throw new Error("Accès refusé.");
-    if (["progress", "registrations", "reports"].includes(t)) {
-      const field =
-        t === "progress"
-          ? "lesson_id"
-          : t === "registrations"
-            ? "event_id"
-            : "post_id";
+    const field = personalUnique[t];
+    if (field) {
       const r = row as unknown as Record<string, string>;
       if (
         data[t].some((x) => {
@@ -134,6 +240,16 @@ export class DemoGateway implements Gateway {
       )
         return;
     }
+    if (t === "week_plans") {
+      const w = row as Tables["week_plans"];
+      const clash = data.week_plans.find(
+        (x) =>
+          x.id !== w.id &&
+          x.family_id === w.family_id &&
+          x.week_start === w.week_start,
+      );
+      if (clash) data.week_plans = data.week_plans.filter((x) => x !== clash);
+    }
     const rows = data[t] as Tables[K][];
     const i = rows.findIndex((r) => r.id === row.id);
     if (i < 0) rows.push(row);
@@ -144,14 +260,41 @@ export class DemoGateway implements Gateway {
     const p = await this.profile();
     const d = this.read();
     const row = d[t].find((r) => r.id === id);
-    if (!row || !this.permitted(t, row, p, "delete"))
+    if (!row || !this.permitted(t, row, p, "delete", d, row))
       throw new Error("Accès refusé.");
-    (d[t] as Tables[Table][]) = d[t].filter((r) => r.id !== id);
-    if (t === "posts") {
-      d.replies = d.replies.filter((r) => r.post_id !== id);
-      d.reports = d.reports.filter((r) => r.post_id !== id);
-    }
+    (d[t] as Row[]) = d[t].filter((r) => r.id !== id);
+    this.cascade(d, t, id);
     this.write(d);
+  }
+  /** Mirrors the SQL foreign keys (on delete cascade / set null). */
+  private cascade(d: Data, t: Table, id: string) {
+    const drop = <K extends Table>(table: K, field: keyof Tables[K]) => {
+      const gone = d[table].filter((r) => r[field] === id);
+      (d[table] as Row[]) = d[table].filter((r) => r[field] !== id);
+      for (const g of gone) this.cascade(d, table, g.id);
+    };
+    if (t === "posts") {
+      drop("replies", "post_id");
+      drop("reports", "post_id");
+    }
+    if (t === "courses") drop("lessons", "course_id");
+    if (t === "lessons") {
+      drop("progress", "lesson_id");
+      drop("lesson_notes", "lesson_id");
+      drop("lesson_questions", "lesson_id");
+    }
+    if (t === "events") drop("registrations", "event_id");
+    if (t === "resources") drop("favorites", "resource_id");
+    if (t === "groups") {
+      drop("group_members", "group_id");
+      for (const post of d.posts)
+        if (post.group_id === id) post.group_id = null;
+    }
+    if (t === "tutors") {
+      drop("tutor_availability", "tutor_id");
+      drop("bookings", "tutor_id");
+    }
+    if (t === "bookings") drop("tutor_reports", "booking_id");
   }
   async upload(file: File, family: string) {
     validateFile(file);

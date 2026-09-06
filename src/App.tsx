@@ -16,8 +16,19 @@ import {
   Check,
   Leaf,
   ArrowUpRight,
+  GraduationCap,
+  Megaphone,
+  Star,
 } from "lucide-react";
-import { completion, type Data, type Profile } from "./domain";
+import {
+  completion,
+  formatDate,
+  localDate,
+  occurrences,
+  shiftDate,
+  type Data,
+  type Profile,
+} from "./domain";
 import type { Gateway } from "./data/gateway";
 import { configured, SupabaseGateway } from "./data/supabase";
 import { DemoGateway } from "./data/demo";
@@ -25,6 +36,7 @@ import { Art, Empty, PageTitle } from "./components/ui";
 import { Courses } from "./components/Courses";
 import { Family } from "./components/Family";
 import { Community, Events, Resources } from "./components/Social";
+import { Tutoring } from "./components/Tutoring";
 import { Admin } from "./components/Admin";
 export type Run = (
   work: () => Promise<void>,
@@ -41,9 +53,10 @@ const navigation = [
   ["accueil", "Mon accueil", Home],
   ["cours", "Mes cours", BookOpen],
   ["semaine", "Ma semaine", CalendarDays],
+  ["tutorat", "Tutorat", GraduationCap],
   ["ressources", "Ressources", Library],
   ["communaute", "Communauté", Users],
-  ["evenements", "Événements", CalendarRange],
+  ["evenements", "Rencontres", CalendarRange],
 ] as const;
 const demoEnabled =
   import.meta.env.VITE_ENABLE_DEMO === "true" || import.meta.env.DEV;
@@ -53,7 +66,11 @@ function initialApi(): Gateway | null {
   if (configured) return new SupabaseGateway();
   return null;
 }
+function authHash() {
+  return /[#&](access_token|error|type)=/.test(window.location.hash);
+}
 function currentPage() {
+  if (authHash()) return "accueil";
   return window.location.hash.slice(1).split("/")[0] || "accueil";
 }
 export default function App() {
@@ -66,6 +83,7 @@ export default function App() {
   const [notice, setNotice] = useState("");
   const [page, setPage] = useState(currentPage);
   const [menu, setMenu] = useState(false);
+  const [recovery, setRecovery] = useState(false);
   const pending = useRef(false);
   const [mobile, setMobile] = useState(
     () => window.matchMedia("(max-width: 640px)").matches,
@@ -91,6 +109,11 @@ export default function App() {
       setLoading(false);
       return;
     }
+    const unsubscribe = api.onAuthEvent((event) => {
+      if (event === "recovery" && live) setRecovery(true);
+    });
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const urlError = params.get("error_description");
     api
       .session()
       .then(async (p) => {
@@ -98,6 +121,14 @@ export default function App() {
         if (p) {
           const d = await api.load();
           if (live) setData(d);
+        }
+        if (authHash()) {
+          if (params.get("type") === "recovery" && live) setRecovery(true);
+          history.replaceState(null, "", window.location.pathname + "#accueil");
+          if (urlError && live)
+            setError(
+              "Ce lien n’est plus valide. Demandez un nouveau courriel depuis la page de connexion.",
+            );
         }
       })
       .catch((e) => {
@@ -108,6 +139,7 @@ export default function App() {
       });
     return () => {
       live = false;
+      unsubscribe();
     };
   }, [api]);
   useEffect(() => {
@@ -165,6 +197,42 @@ export default function App() {
       setBusy(false);
     }
   };
+  const signup = async (email: string, password: string, name: string) => {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      if (!api) throw new Error("Supabase n’est pas encore configuré.");
+      const result = await api.signup(email, password, name);
+      if (result === "confirm")
+        setNotice(
+          "Compte créé. Ouvrez le courriel de confirmation, puis connectez-vous.",
+        );
+      else {
+        setProfile(result);
+        setData(await api.load());
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const reset = async (email: string) => {
+    setBusy(true);
+    setError("");
+    try {
+      if (!api) throw new Error("Supabase n’est pas encore configuré.");
+      await api.resetPassword(email);
+      setNotice(
+        "Si un compte existe pour ce courriel, un lien de réinitialisation vient d’être envoyé.",
+      );
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
   const logout = async () => {
     if (!api) return;
     setBusy(true);
@@ -172,6 +240,7 @@ export default function App() {
       await api.logout();
       setProfile(null);
       setData(null);
+      setRecovery(false);
       sessionStorage.removeItem("parented-mode");
       if (api.mode === "demo")
         setApi(configured ? new SupabaseGateway() : null);
@@ -189,7 +258,17 @@ export default function App() {
         <p role="status">Ouverture de votre espace…</p>
       </div>
     );
-  if (!profile) return <Login login={login} busy={busy} error={error} />;
+  if (!profile)
+    return (
+      <Login
+        login={login}
+        signup={signup}
+        reset={reset}
+        busy={busy}
+        error={error}
+        notice={notice}
+      />
+    );
   const props = data && api ? { data, profile, api, run, busy } : null;
   return (
     <div className="app-shell">
@@ -210,7 +289,9 @@ export default function App() {
         <a className="brand" href="#accueil">
           <img src="/parented-logo.png" alt="parentEd — accueil" />
         </a>
-        <span className="nav-label">MON ESPACE PARENT</span>
+        <span className="nav-label">
+          {profile.role === "tutor" ? "ESPACE TUTEUR" : "MON ESPACE PARENT"}
+        </span>
         <nav aria-label="Navigation principale" onClick={() => setMenu(false)}>
           {navigation.map(([id, label, Icon]) => (
             <a
@@ -220,7 +301,9 @@ export default function App() {
               aria-current={page === id ? "page" : undefined}
             >
               <Icon size={20} />
-              {label}
+              {id === "tutorat" && profile.role === "tutor"
+                ? "Mes séances"
+                : label}
               {page === id && <span className="nav-active-dot" />}
             </a>
           ))}
@@ -244,7 +327,11 @@ export default function App() {
             <div>
               <strong>{profile.display_name}</strong>
               <small>
-                {profile.role === "admin" ? "Administration" : "Espace parent"}
+                {profile.role === "admin"
+                  ? "Administration"
+                  : profile.role === "tutor"
+                    ? "Tuteur partenaire"
+                    : "Espace parent"}
               </small>
             </div>
             <button
@@ -306,6 +393,18 @@ export default function App() {
               {notice}
             </div>
           )}
+          {recovery && api && (
+            <NewPassword
+              busy={busy}
+              onSubmit={(password) =>
+                run(async () => {
+                  await api.updatePassword(password);
+                  setRecovery(false);
+                }, "Mot de passe modifié. Vous êtes connecté.")
+              }
+              onCancel={() => setRecovery(false)}
+            />
+          )}
           {!props ? (
             <Empty>
               Impossible de charger votre espace. Utilisez « Réessayer ».
@@ -316,6 +415,8 @@ export default function App() {
             <Courses {...props} />
           ) : page === "semaine" ? (
             <Family {...props} />
+          ) : page === "tutorat" ? (
+            <Tutoring {...props} />
           ) : page === "ressources" ? (
             <Resources {...props} />
           ) : page === "communaute" ? (
@@ -341,20 +442,98 @@ export default function App() {
     </div>
   );
 }
+function NewPassword({
+  busy,
+  onSubmit,
+  onCancel,
+}: {
+  busy: boolean;
+  onSubmit: (password: string) => Promise<boolean>;
+  onCancel: () => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [mismatch, setMismatch] = useState(false);
+  return (
+    <form
+      className="editor"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (password !== confirm) {
+          setMismatch(true);
+          return;
+        }
+        setMismatch(false);
+        void onSubmit(password);
+      }}
+    >
+      <div className="section-heading">
+        <h2>Choisir un nouveau mot de passe</h2>
+        <button type="button" className="text-button" onClick={onCancel}>
+          Plus tard
+        </button>
+      </div>
+      <div className="form-grid">
+        <label>
+          Nouveau mot de passe (12 caractères minimum)
+          <input
+            type="password"
+            autoComplete="new-password"
+            minLength={12}
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </label>
+        <label>
+          Confirmer
+          <input
+            type="password"
+            autoComplete="new-password"
+            minLength={12}
+            required
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+          />
+        </label>
+      </div>
+      {mismatch && (
+        <p className="small danger">
+          Les deux mots de passe ne correspondent pas.
+        </p>
+      )}
+      <div className="form-actions">
+        <button className="button primary" disabled={busy}>
+          Enregistrer le mot de passe
+        </button>
+      </div>
+    </form>
+  );
+}
 function Login({
   login,
+  signup,
+  reset,
   busy,
   error,
+  notice,
 }: {
   login: (email: string, password: string, demo?: boolean) => Promise<void>;
+  signup: (email: string, password: string, name: string) => Promise<void>;
+  reset: (email: string) => Promise<void>;
   busy: boolean;
   error: string;
+  notice: string;
 }) {
+  const [mode, setMode] = useState<"login" | "signup" | "reset">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    void login(email, password);
+    if (mode === "login") void login(email, password);
+    else if (mode === "signup") void signup(email, password, name);
+    else void reset(email);
   };
   return (
     <div className="login">
@@ -368,28 +547,60 @@ function Login({
             Beaucoup de possibles.
           </h1>
           <p>
-            Apprenez, organisez votre quotidien et trouvez du soutien pour votre
-            aventure en famille.
+            Se former, organiser la semaine, trouver des ressources fiables, un
+            soutien complémentaire et une communauté active. En un seul espace.
           </p>
           <Art large />
           <span className="story-caption">
             <Leaf size={18} /> Grandir ensemble, une découverte à la fois.
           </span>
         </div>
-        <small>Les cours ParentEd s’adressent aux parents-éducateurs.</small>
+        <small>
+          Les cours ParentEd s’adressent aux parents-éducateurs. ParentEd n’est
+          ni une école ni une garantie de conformité gouvernementale.
+        </small>
       </section>
       <section className="login-panel">
         <div className="login-form">
           <span className="eyebrow">VOTRE ESPACE PARENT</span>
-          <h2>Heureux de vous retrouver.</h2>
-          <p>Un petit pas aujourd’hui, de nouvelles idées pour demain.</p>
+          <h2>
+            {mode === "signup"
+              ? "Créer votre espace familial."
+              : mode === "reset"
+                ? "Retrouver l’accès à votre espace."
+                : "Heureux de vous retrouver."}
+          </h2>
+          <p>
+            {mode === "signup"
+              ? "Un compte par parent; votre famille et vos documents restent privés."
+              : mode === "reset"
+                ? "Nous vous envoyons un lien pour choisir un nouveau mot de passe."
+                : "Un petit pas aujourd’hui, de nouvelles idées pour demain."}
+          </p>
           {error && (
             <div className="alert" role="alert">
               {error}
             </div>
           )}
+          {notice && (
+            <div className="notice" role="status">
+              <Check size={17} /> {notice}
+            </div>
+          )}
           {configured ? (
             <form onSubmit={submit}>
+              {mode === "signup" && (
+                <label>
+                  Votre prénom (affiché dans la communauté)
+                  <input
+                    autoComplete="given-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    maxLength={80}
+                  />
+                </label>
+              )}
               <label>
                 Adresse courriel
                 <input
@@ -400,23 +611,67 @@ function Login({
                   required
                 />
               </label>
-              <label>
-                Mot de passe
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </label>
+              {mode !== "reset" && (
+                <label>
+                  Mot de passe
+                  <input
+                    type="password"
+                    autoComplete={
+                      mode === "signup" ? "new-password" : "current-password"
+                    }
+                    minLength={mode === "signup" ? 12 : undefined}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </label>
+              )}
+              {mode === "signup" && (
+                <p className="muted small">
+                  12 caractères minimum. En créant un compte, vous acceptez que
+                  ParentEd conserve votre courriel et vos données familiales
+                  pour fournir le service.
+                </p>
+              )}
               <button className="button primary" disabled={busy}>
-                {busy ? "Connexion…" : "Me connecter"}
+                {busy
+                  ? "Un instant…"
+                  : mode === "signup"
+                    ? "Créer mon compte"
+                    : mode === "reset"
+                      ? "Envoyer le lien"
+                      : "Me connecter"}
                 <ArrowRight size={18} />
               </button>
-              <p className="muted small">
-                Utilisez le compte fourni par l’équipe ParentEd.
-              </p>
+              <div className="login-links">
+                {mode !== "login" && (
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() => setMode("login")}
+                  >
+                    J’ai déjà un compte
+                  </button>
+                )}
+                {mode !== "signup" && (
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() => setMode("signup")}
+                  >
+                    Créer un compte
+                  </button>
+                )}
+                {mode !== "reset" && (
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() => setMode("reset")}
+                  >
+                    Mot de passe oublié
+                  </button>
+                )}
+              </div>
             </form>
           ) : (
             <div className="connection-note">
@@ -451,6 +706,12 @@ function Login({
                 </button>
                 <button
                   disabled={busy}
+                  onClick={() => login("nadia@demo.parented.test", "", true)}
+                >
+                  Tutrice : Nadia
+                </button>
+                <button
+                  disabled={busy}
                   onClick={() => login("admin@demo.parented.test", "", true)}
                 >
                   Administration
@@ -463,7 +724,8 @@ function Login({
     </div>
   );
 }
-function Dashboard({ data, profile }: Props) {
+function Dashboard({ data, profile, api }: Props) {
+  const today = api.mode === "demo" ? "2026-09-07" : localDate();
   const courses = data.courses
     .filter((c) => c.published)
     .sort((a, b) => a.position - b.position);
@@ -480,17 +742,41 @@ function Dashboard({ data, profile }: Props) {
     .sort((a, b) => a.position - b.position);
   const done = completion(lessons, data.progress);
   const task = data.tasks
-    .filter((t) => !t.done)
+    .filter((t) => !t.done && t.date >= today)
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
-  const event = data.events
-    .filter((e) => e.published)
-    .sort((a, b) => a.date.localeCompare(b.date))[0];
+  const published = data.events.filter((e) => e.published);
+  const next = occurrences(published, today, shiftDate(today, 120));
+  const featured =
+    next.find((o) => o.event.featured) ??
+    next.find((o) =>
+      data.registrations.some((r) => r.event_id === o.event.id),
+    ) ??
+    next[0];
+  const myTutor = data.tutors.find((t) => t.profile_id === profile.id);
+  const session = data.bookings
+    .filter((b) =>
+      myTutor ? b.tutor_id === myTutor.id : b.family_id === profile.family_id,
+    )
+    .filter((b) => ["demandée", "confirmée"].includes(b.status))
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))[0];
+  const pendingForTutor = myTutor
+    ? data.bookings.filter(
+        (b) => b.tutor_id === myTutor.id && b.status === "demandée",
+      ).length
+    : 0;
+  const groups = data.group_members.filter(
+    (m) => m.user_id === profile.id,
+  ).length;
   return (
     <>
       <PageTitle
         eyebrow="CHAQUE PETIT PAS COMPTE"
         title={`Bonjour ${profile.display_name}.`}
-        description="Un espace pour apprendre, s’organiser et avancer ensemble."
+        description={
+          myTutor
+            ? "Vos séances, vos comptes rendus et la vie de la communauté."
+            : "Un espace pour apprendre, s’organiser et avancer ensemble."
+        }
       />
       <section className="dashboard-grid">
         <div className="hero-card">
@@ -507,8 +793,11 @@ function Dashboard({ data, profile }: Props) {
               Quelques repères pour une semaine plus sereine,
               <br className="desktop-only" /> et de la place pour l’imprévu.
             </p>
-            <a className="button white" href="#semaine">
-              Organiser ma semaine
+            <a
+              className="button white"
+              href={myTutor ? "#tutorat" : "#semaine"}
+            >
+              {myTutor ? "Voir mes séances" : "Organiser ma semaine"}
               <ArrowRight size={18} />
             </a>
           </div>
@@ -530,21 +819,52 @@ function Dashboard({ data, profile }: Props) {
               <small>Chaque idée fait son chemin</small>
             </div>
           </div>
+          {myTutor ? (
+            <div className="glance-row">
+              <span className="glance-icon green">
+                <GraduationCap size={21} />
+              </span>
+              <div>
+                <strong>
+                  {pendingForTutor} demande{pendingForTutor > 1 ? "s" : ""} à
+                  confirmer
+                </strong>
+                <small>Dans votre espace tuteur</small>
+              </div>
+            </div>
+          ) : (
+            <div className="glance-row">
+              <span className="glance-icon green">
+                <CalendarDays size={21} />
+              </span>
+              <div>
+                <strong>
+                  {data.tasks.filter((t) => !t.done).length} activité
+                  {data.tasks.filter((t) => !t.done).length > 1 ? "s" : ""} à
+                  vivre
+                </strong>
+                <small>Dans votre planning familial</small>
+              </div>
+            </div>
+          )}
           <div className="glance-row">
-            <span className="glance-icon green">
-              <CalendarDays size={21} />
+            <span className="glance-icon sand">
+              <Users size={21} />
             </span>
             <div>
               <strong>
-                {data.tasks.filter((t) => !t.done).length} activité
-                {data.tasks.filter((t) => !t.done).length > 1 ? "s" : ""} à
-                vivre
+                {groups} groupe{groups > 1 ? "s" : ""} rejoint
+                {groups > 1 ? "s" : ""}
               </strong>
-              <small>Dans votre planning familial</small>
+              <small>
+                {data.favorites.length} ressource
+                {data.favorites.length > 1 ? "s" : ""} en favoris
+              </small>
             </div>
           </div>
-          <a href="#semaine" className="text-link">
-            Voir mon organisation <ArrowUpRight size={16} />
+          <a href={myTutor ? "#tutorat" : "#semaine"} className="text-link">
+            {myTutor ? "Voir mes séances" : "Voir mon organisation"}{" "}
+            <ArrowUpRight size={16} />
           </a>
         </div>
       </section>
@@ -618,36 +938,57 @@ function Dashboard({ data, profile }: Props) {
             <h2>À l’horizon</h2>
             <CalendarRange size={19} />
           </div>
+          {session && (
+            <a href="#tutorat" className="horizon-item">
+              <span className="pill">
+                {myTutor ? "SÉANCE" : "TUTORAT"} ·{" "}
+                {session.status.toUpperCase()}
+              </span>
+              <h3>
+                {session.subject}
+                {myTutor
+                  ? ` · ${session.child}`
+                  : ` avec ${data.tutors.find((t) => t.id === session.tutor_id)?.display_name ?? "un tuteur"}`}
+              </h3>
+              <p>
+                {formatDate(session.date)} · {session.time}
+                {session.weekly && " · chaque semaine"}
+              </p>
+              {!myTutor && <small>{session.child}</small>}
+            </a>
+          )}
           {task && (
             <a href="#semaine" className="horizon-item">
               <span className="pill">EN FAMILLE</span>
               <h3>{task.title}</h3>
               <p>
-                {new Date(task.date + "T12:00:00").toLocaleDateString("fr-CA", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                })}{" "}
-                · {task.time}
+                {formatDate(task.date)} · {task.time}
               </p>
               <small>{task.child}</small>
             </a>
           )}
-          {event ? (
+          {featured ? (
             <a href="#evenements" className="event-preview">
               <div className="event-art">
                 <Leaf size={58} strokeWidth={1} />
                 <span>LES RENCONTRES PARENTED</span>
               </div>
               <div>
-                <span className="pill">ON SE RETROUVE ?</span>
-                <h3>{event.title}</h3>
+                <span
+                  className={`pill ${featured.event.featured ? "featured" : ""}`}
+                >
+                  {featured.event.featured ? (
+                    <>
+                      <Megaphone size={11} /> À LA UNE
+                    </>
+                  ) : (
+                    "ON SE RETROUVE ?"
+                  )}
+                </span>
+                <h3>{featured.event.title}</h3>
                 <p>
-                  {new Date(event.date + "T12:00:00").toLocaleDateString(
-                    "fr-CA",
-                    { day: "numeric", month: "long" },
-                  )}{" "}
-                  · {event.time}
+                  {formatDate(featured.date, { day: "numeric", month: "long" })}{" "}
+                  · {featured.event.time}
                 </p>
                 <span className="text-link">
                   Découvrir la rencontre <ArrowUpRight size={16} />
@@ -656,6 +997,15 @@ function Dashboard({ data, profile }: Props) {
             </a>
           ) : (
             <Empty>Aucune rencontre à venir.</Empty>
+          )}
+          {data.favorites.length === 0 && !myTutor && (
+            <a href="#ressources" className="horizon-item">
+              <span className="pill">
+                <Star size={11} /> RESSOURCES
+              </span>
+              <h3>Gardez vos liens officiels sous la main</h3>
+              <p>Ajoutez vos premières ressources en favoris.</p>
+            </a>
           )}
         </div>
       </section>

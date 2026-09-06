@@ -45,3 +45,12 @@ Utiliser exclusivement une instance locale ou de recette et des données fictive
 11. Reconstruire avec les paramètres Supabase, puis refaire le parcours sur `npm run preview:cloudflare` (8787). La réussite Vite seule ne suffit pas.
 
 Contrôle mobile complémentaire : connexion, menu au clavier/Escape, cours long, formulaire d’activité, discussion longue et calendrier mensuel. Ne pas extrapoler les deux captures vérifiées à tous les navigateurs ou appareils.
+
+## Compléments V2 à exécuter sur Supabase réel
+
+12. Inscription depuis le site : créer un compte, recevoir le courriel, confirmer, se connecter; vérifier qu’un profil `parent` et une famille sont créés. Tester « Mot de passe oublié » et le formulaire de nouveau mot de passe.
+13. Tutorat : nommer un compte `tutor` et relier `tutors.profile_id`. Avec Amélie, demander une séance; vérifier qu’un statut « confirmée » envoyé directement est refusé. Avec le tuteur, confirmer, clore et rédiger un compte rendu. Avec Sami, vérifier l’absence totale des séances et comptes rendus d’Amélie, via l’API aussi.
+14. Propositions : avec Sami, proposer une rencontre; vérifier qu’Amélie ne la voit pas et ne peut pas s’y inscrire; publier avec Camille, puis vérifier la visibilité et l’inscription.
+15. Groupes, favoris, notes de leçon, questions : vérifier l’unicité (double favori refusé), l’isolation des notes personnelles et la réponse d’une question par l’administration seule.
+16. Famille : enfants, plan hebdomadaire, bibliothèque et portfolio invisibles pour Camille et Sami; export JSON complet.
+17. Après `npm run deploy`, refaire les étapes 12 et 13 sur l’URL publique, avec Site URL et Redirect URLs configurées.

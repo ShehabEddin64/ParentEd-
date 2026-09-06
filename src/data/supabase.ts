@@ -2,15 +2,23 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   tableNames,
   validateFile,
+  validatePassword,
+  required,
   type Data,
   type Profile,
   type Table,
   type Tables,
 } from "../domain";
-import type { Gateway } from "./gateway";
+import type { AuthEvent, Gateway } from "./gateway";
 export const configured = Boolean(
   import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY,
 );
+const messages: Record<string, string> = {
+  "23505": "Cet élément est déjà enregistré.",
+  "42501": "Vous n’avez pas accès à cette action.",
+  "23514": "Une valeur saisie n’est pas acceptée. Vérifiez le formulaire.",
+  "23503": "Cet élément fait référence à un contenu qui n’existe plus.",
+};
 export class SupabaseGateway implements Gateway {
   mode = "supabase" as const;
   client: SupabaseClient;
@@ -49,9 +57,56 @@ export class SupabaseGateway implements Gateway {
     });
     if (error)
       throw new Error(
-        "Connexion impossible. Vérifiez votre courriel et votre mot de passe.",
+        error.message.toLowerCase().includes("confirm")
+          ? "Confirmez d’abord votre adresse courriel grâce au message reçu."
+          : "Connexion impossible. Vérifiez votre courriel et votre mot de passe.",
       );
     return this.profile(data.user.id);
+  }
+  async signup(email: string, password: string, displayName: string) {
+    validatePassword(password);
+    const { data, error } = await this.client.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { display_name: required(displayName, 80) },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    if (error)
+      throw new Error(
+        error.message.toLowerCase().includes("already")
+          ? "Un compte existe déjà avec ce courriel. Connectez-vous ou réinitialisez votre mot de passe."
+          : "La création du compte a échoué. Vérifiez le courriel et réessayez.",
+      );
+    if (data.session && data.user) return this.profile(data.user.id);
+    return "confirm";
+  }
+  async resetPassword(email: string) {
+    const { error } = await this.client.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin,
+    });
+    if (error)
+      throw new Error(
+        "L’envoi du courriel de réinitialisation a échoué. Réessayez dans quelques minutes.",
+      );
+  }
+  async updatePassword(password: string) {
+    validatePassword(password);
+    const { error } = await this.client.auth.updateUser({ password });
+    if (error)
+      throw new Error(
+        "Le mot de passe n’a pas pu être modifié. Ouvrez de nouveau le lien reçu par courriel.",
+      );
+  }
+  onAuthEvent(listener: (event: AuthEvent) => void) {
+    const {
+      data: { subscription },
+    } = this.client.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") listener("recovery");
+      if (event === "SIGNED_OUT") listener("signed_out");
+    });
+    return () => subscription.unsubscribe();
   }
   async logout() {
     const { error } = await this.client.auth.signOut();
@@ -66,7 +121,7 @@ export class SupabaseGateway implements Gateway {
           .limit(1000);
         if (error)
           throw new Error(
-            "Chargement impossible. Vérifiez votre connexion et la configuration de la base.",
+            "Chargement impossible. Vérifiez votre connexion et que les migrations SQL sont appliquées.",
           );
         return [t, data];
       }),
@@ -77,11 +132,8 @@ export class SupabaseGateway implements Gateway {
     const { error } = await this.client.from(t).upsert(row);
     if (error)
       throw new Error(
-        error.code === "23505"
-          ? "Cet élément est déjà enregistré."
-          : error.code === "42501"
-            ? "Vous n’avez pas accès à cette action."
-            : "Enregistrement impossible. Réessayez après avoir vérifié votre connexion.",
+        messages[error.code] ??
+          "Enregistrement impossible. Réessayez après avoir vérifié votre connexion.",
       );
   }
   async remove(t: Table, id: string) {

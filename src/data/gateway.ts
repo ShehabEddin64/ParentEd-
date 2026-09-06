@@ -1,8 +1,18 @@
 import type { Data, Profile, Table, Tables } from "../domain";
+export type AuthEvent = "recovery" | "signed_out";
 export interface Gateway {
   mode: "demo" | "supabase";
   session(): Promise<Profile | null>;
   login(email: string, password: string): Promise<Profile>;
+  /** Returns the profile when the session opens immediately, or "confirm" when an e-mail confirmation is pending. */
+  signup(
+    email: string,
+    password: string,
+    displayName: string,
+  ): Promise<Profile | "confirm">;
+  resetPassword(email: string): Promise<void>;
+  updatePassword(password: string): Promise<void>;
+  onAuthEvent(listener: (event: AuthEvent) => void): () => void;
   logout(): Promise<void>;
   load(): Promise<Data>;
   save<K extends Table>(table: K, row: Tables[K]): Promise<void>;

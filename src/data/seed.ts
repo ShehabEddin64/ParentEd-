@@ -3,9 +3,17 @@ export const ids = {
   parent: "10000000-0000-4000-8000-000000000001",
   other: "10000000-0000-4000-8000-000000000002",
   admin: "10000000-0000-4000-8000-000000000003",
+  tutor: "10000000-0000-4000-8000-000000000004",
   family: "20000000-0000-4000-8000-000000000001",
   otherFamily: "20000000-0000-4000-8000-000000000002",
   adminFamily: "20000000-0000-4000-8000-000000000003",
+  tutorFamily: "20000000-0000-4000-8000-000000000004",
+  tutorNadia: "90000000-0000-4000-8000-000000000001",
+  tutorKarim: "90000000-0000-4000-8000-000000000002",
+  groupMontreal: "a0000000-0000-4000-8000-000000000001",
+  groupLaval: "a0000000-0000-4000-8000-000000000002",
+  groupDebuter: "a0000000-0000-4000-8000-000000000003",
+  groupDehors: "a0000000-0000-4000-8000-000000000004",
 };
 export const seed: Data = {
   profiles: [
@@ -26,6 +34,12 @@ export const seed: Data = {
       family_id: ids.adminFamily,
       display_name: "Camille",
       role: "admin",
+    },
+    {
+      id: ids.tutor,
+      family_id: ids.tutorFamily,
+      display_name: "Nadia",
+      role: "tutor",
     },
   ],
   courses: [
@@ -56,6 +70,15 @@ export const seed: Data = {
       position: 3,
       published: true,
     },
+    {
+      id: "30000000-0000-4000-8000-000000000004",
+      title: "Préparer ses bilans sans stress",
+      description:
+        "Comprendre à quoi servent les bilans de progression et rassembler ce qui compte, au fil de l’année.",
+      category: "Démarches",
+      position: 4,
+      published: true,
+    },
   ],
   lessons: [
     {
@@ -67,6 +90,9 @@ export const seed: Data = {
       body: "Avant de remplir un calendrier, prenez le temps d’observer votre famille. À quel moment votre enfant est-il le plus disponible ? Quelles activités vous donnent de l’énergie ? Les réponses vous aideront à choisir des repères réalistes.\n\nPendant deux ou trois jours, notez les moments de concentration, les besoins de mouvement et les pauses spontanées. Il ne s’agit pas d’évaluer la performance de votre famille : cherchez simplement ce qui facilite votre quotidien.\n\nChoisissez ensuite deux points d’appui : un moment pour commencer ensemble et un moment pour terminer. Entre les deux, gardez de la place pour les questions, les détours et le repos. Une routine utile vous soutient; elle peut évoluer.",
       exercise:
         "Notez un moment où votre famille se sent disponible. Ajoutez ensuite un premier rendez-vous dans « Ma semaine ».",
+      video_url: null,
+      template:
+        "Journal d’observation — trois jours\n\nJour 1\n- Moment de grande disponibilité :\n- Besoin de bouger vers :\n- Pause spontanée :\n\nJour 2\n- Moment de grande disponibilité :\n- Besoin de bouger vers :\n- Pause spontanée :\n\nJour 3\n- Moment de grande disponibilité :\n- Besoin de bouger vers :\n- Pause spontanée :\n\nDeux points d’appui choisis :\n1.\n2.",
     },
     {
       id: "40000000-0000-4000-8000-000000000002",
@@ -77,6 +103,9 @@ export const seed: Data = {
       body: "Commencez par ce qui est déjà présent : repas, rendez-vous, sorties et temps de repos. Répartissez ensuite quelques intentions d’apprentissage dans les espaces disponibles. Évitez de planifier chaque minute.\n\nUn mardi peut commencer par une lecture partagée, se poursuivre par une promenade d’observation et se terminer par un temps calme. Les durées dépendent de votre famille. Une activité commune peut donner lieu à des défis différents selon les enfants.\n\nPrévoyez un espace libre chaque jour. Si une activité ne fonctionne pas, déplacez-la ou simplifiez-la. Le calendrier sert à rendre vos intentions visibles, pas à créer une obligation de tout accomplir.",
       exercise:
         "Planifiez deux activités et une pause pour mardi. Choisissez « Toute la famille » lorsque l’activité est partagée.",
+      video_url: null,
+      template:
+        "Plan hebdomadaire souple\n\nIntentions de la semaine (2 ou 3 au plus) :\n-\n-\n\nRepères fixes (repas, rendez-vous, sorties) :\n-\n\nMatin — moment pour commencer ensemble :\nAprès-midi — temps calme ou sortie :\nEspace libre chaque jour : oui / à protéger\n\nCe que je déplace si la journée déborde :",
     },
     {
       id: "40000000-0000-4000-8000-000000000003",
@@ -86,7 +115,9 @@ export const seed: Data = {
       position: 3,
       body: "À la fin de la semaine, prenez quelques minutes pour regarder ce qui a aidé votre famille. Demandez à chacun de raconter une découverte et un moment difficile. Écoutez sans chercher tout de suite une solution.\n\nConservez un repère qui fonctionne et modifiez une seule chose pour la semaine suivante. Ce petit ajustement est plus facile à observer qu’un nouveau planning complet.\n\nUne activité reportée ne signifie pas qu’aucun apprentissage n’a eu lieu. Vos observations et vos échanges permettent de comprendre le chemin parcouru. Pour les démarches officielles, consultez les ressources gouvernementales liées dans la bibliothèque.",
       exercise:
-        "Choisissez un repère à conserver la semaine prochaine et racontez pourquoi dans une note personnelle.",
+        "Choisissez un repère à conserver la semaine prochaine et racontez pourquoi dans votre note personnelle, sous cette leçon.",
+      video_url: null,
+      template: "",
     },
     {
       id: "40000000-0000-4000-8000-000000000004",
@@ -97,6 +128,9 @@ export const seed: Data = {
       body: "Votre projet commence par une conversation. Qu’aimeriez-vous rendre possible dans votre quotidien ? Quels sont les besoins de votre enfant et les ressources dont vous disposez ?\n\nÉcrivez trois intentions concrètes, comme lire ensemble régulièrement ou apprendre à observer la nature. Distinguez vos envies des démarches administratives : les ressources officielles vous permettront de vérifier ces dernières.\n\nLes cours ParentEd sont destinés aux parents et proposent des pistes d’organisation. Ils ne remplacent pas les informations gouvernementales ni un accompagnement professionnel adapté à votre situation.",
       exercise:
         "Écrivez vos trois intentions. Consultez ensuite le portail officiel depuis la bibliothèque.",
+      video_url: null,
+      template:
+        "Nos trois intentions\n\n1. Nous aimerions…\n   Parce que…\n2. Nous aimerions…\n   Parce que…\n3. Nous aimerions…\n   Parce que…\n\nCe qui relève des démarches officielles (à vérifier dans les ressources) :\n-",
     },
     {
       id: "40000000-0000-4000-8000-000000000005",
@@ -106,10 +140,40 @@ export const seed: Data = {
       position: 1,
       body: "Une trace utile raconte une découverte : une photo d’une construction, quelques phrases dictées ou un dessin accompagné d’une question. Conserver moins de traces, avec un peu de contexte, facilite leur relecture.\n\nNotez la date, l’activité et ce que votre enfant souhaite raconter. Privilégiez ses mots et protégez sa vie privée. Les documents de votre espace familial ne sont pas publiés dans la communauté.\n\nPrenez régulièrement le temps de revoir ces traces ensemble. Cet outil aide à observer les apprentissages; il ne constitue pas automatiquement un dossier répondant aux exigences officielles.",
       exercise:
-        "Choisissez un document sans données sensibles et ajoutez-le à votre dossier familial privé.",
+        "Choisissez un document sans données sensibles et ajoutez-le à votre portfolio privé, avec une courte note de contexte.",
+      video_url: null,
+      template:
+        "Fiche de trace\n\nDate :\nEnfant :\nActivité :\nCe que l’enfant raconte (ses mots) :\nCe que j’ai observé :\nQuestion qui reste ouverte :",
+    },
+    {
+      id: "40000000-0000-4000-8000-000000000006",
+      course_id: "30000000-0000-4000-8000-000000000004",
+      title: "À quoi sert un bilan de progression",
+      minutes: 7,
+      position: 1,
+      body: "Le cadre québécois prévoit des bilans qui décrivent la progression de l’enfant au fil de l’année. Leur but n’est pas de tout prouver : ils rendent lisible le chemin parcouru pour votre enfant, pour vous et pour votre interlocuteur.\n\nUn bilan devient simple lorsqu’il s’appuie sur des traces déjà rassemblées : quelques notes datées, des photos choisies et vos observations. Le portfolio privé de ParentEd vous aide à les regrouper par enfant.\n\nCe cours explique la logique et propose une méthode de travail. Les exigences exactes, les dates et les formulaires appartiennent aux sources officielles : consultez-les depuis la bibliothèque et gardez la date de votre relevé.",
+      exercise:
+        "Ouvrez la ressource « Démarche et étapes », puis notez dans votre plan hebdomadaire un moment de dix minutes, cette semaine, pour relire vos traces.",
+      video_url: null,
+      template:
+        "Canevas de relecture avant un bilan\n\nPériode couverte :\nEnfant :\n\nCe que nous avons exploré (3 à 5 points) :\n-\n\nTraces qui l’illustrent (dates) :\n-\n\nCe que l’enfant dit avoir appris :\n\nCe que nous ajustons pour la suite :\n\nRappel : vérifier les attentes exactes et les échéances dans la source officielle.",
     },
   ],
   progress: [],
+  lesson_notes: [],
+  lesson_questions: [
+    {
+      id: "b0000000-0000-4000-8000-000000000001",
+      lesson_id: "40000000-0000-4000-8000-000000000002",
+      user_id: ids.other,
+      author: "Sami",
+      body: "Comment gérer une semaine où les deux enfants n’ont pas du tout le même rythme le matin ?",
+      answer:
+        "Merci Sami ! Une piste : garder un seul repère commun (le début de journée ensemble), puis proposer deux activités parallèles, l’une autonome et l’autre accompagnée. Le plan hebdomadaire de « Ma semaine » permet de noter cette intention sans tout figer.",
+      answered_at: "2026-09-06T15:00:00Z",
+      created_at: "2026-09-06T14:00:00Z",
+    },
+  ],
   tasks: [
     {
       id: "50000000-0000-4000-8000-000000000001",
@@ -148,6 +212,7 @@ export const seed: Data = {
       body: "Cette semaine, nous avons commencé par une petite promenade. Les enfants ont choisi une feuille à dessiner au retour. Un moment simple qui nous a fait du bien. Et vous, quel petit rituel vous aide ?",
       category: "Au quotidien",
       created_at: "2026-09-06T13:00:00Z",
+      group_id: ids.groupDehors,
     },
     {
       id: "60000000-0000-4000-8000-000000000002",
@@ -157,9 +222,56 @@ export const seed: Data = {
       body: "Ici, on échange des idées et des expériences, avec respect. Gardez les renseignements personnels de vos enfants dans votre dossier familial. Présentez-vous en quelques mots si le cœur vous en dit !",
       category: "Bienvenue",
       created_at: "2026-09-05T12:00:00Z",
+      group_id: null,
     },
   ],
   replies: [],
+  groups: [
+    {
+      id: ids.groupMontreal,
+      name: "Montréal et environs",
+      description:
+        "Familles de l’île de Montréal : rencontres au parc, sorties et entraide de proximité.",
+      kind: "region",
+      created_at: "2026-09-01T12:00:00Z",
+    },
+    {
+      id: ids.groupLaval,
+      name: "Laval et Rive-Nord",
+      description:
+        "Pour coordonner des activités et s’entraider au nord de la rivière.",
+      kind: "region",
+      created_at: "2026-09-01T12:00:00Z",
+    },
+    {
+      id: ids.groupDebuter,
+      name: "Débuter l’école maison",
+      description:
+        "Vos premières questions, sans jugement : démarches, organisation et confiance.",
+      kind: "theme",
+      created_at: "2026-09-01T12:00:00Z",
+    },
+    {
+      id: ids.groupDehors,
+      name: "Apprendre dehors",
+      description:
+        "Nature, observation, sorties : partager nos idées d’apprentissage en plein air.",
+      kind: "theme",
+      created_at: "2026-09-01T12:00:00Z",
+    },
+  ],
+  group_members: [
+    {
+      id: "a1000000-0000-4000-8000-000000000001",
+      group_id: ids.groupMontreal,
+      user_id: ids.other,
+    },
+    {
+      id: "a1000000-0000-4000-8000-000000000002",
+      group_id: ids.groupDehors,
+      user_id: ids.other,
+    },
+  ],
   events: [
     {
       id: "70000000-0000-4000-8000-000000000001",
@@ -172,6 +284,14 @@ export const seed: Data = {
       organizer: "Camille — ParentEd (fictif)",
       age: "6–12 ans",
       published: true,
+      region: "Montréal",
+      price: "Gratuit",
+      featured: true,
+      recurrence: "none",
+      recurrence_until: null,
+      map_url:
+        "https://www.openstreetmap.org/?mlat=45.5590&mlon=-73.5630#map=16/45.5590/-73.5630",
+      created_by: ids.admin,
     },
     {
       id: "70000000-0000-4000-8000-000000000002",
@@ -184,6 +304,52 @@ export const seed: Data = {
       organizer: "Sami — membre (fictif)",
       age: "Parents et enfants",
       published: true,
+      region: "Montréal",
+      price: "Gratuit",
+      featured: false,
+      recurrence: "none",
+      recurrence_until: null,
+      map_url: null,
+      created_by: ids.other,
+    },
+    {
+      id: "70000000-0000-4000-8000-000000000003",
+      title: "Le parc du mardi",
+      description:
+        "Rencontre récurrente au parc pour jouer, discuter et se retrouver chaque semaine. Rencontre fictive. Chaque famille apporte sa collation; les parents restent présents et responsables.",
+      date: "2026-09-08",
+      time: "14:30",
+      location: "Montréal · Parc Laurier, près des jeux d’eau",
+      organizer: "Camille — ParentEd (fictif)",
+      age: "Tous les âges",
+      published: true,
+      region: "Montréal",
+      price: "Gratuit",
+      featured: false,
+      recurrence: "weekly",
+      recurrence_until: "2026-11-24",
+      map_url:
+        "https://www.openstreetmap.org/?mlat=45.5310&mlon=-73.5880#map=16/45.5310/-73.5880",
+      created_by: ids.admin,
+    },
+    {
+      id: "70000000-0000-4000-8000-000000000004",
+      title: "Samedi découverte : le marché et ses saisons",
+      description:
+        "Une sortie du week-end pour observer les produits d’ici, calculer un petit budget et discuter avec les producteurs. Rencontre fictive. Les achats restent à la charge de chaque famille.",
+      date: "2026-09-19",
+      time: "09:30",
+      location: "Laval · Marché public",
+      organizer: "Camille — ParentEd (fictif)",
+      age: "5–14 ans",
+      published: true,
+      region: "Laval et Rive-Nord",
+      price: "Entrée libre",
+      featured: false,
+      recurrence: "none",
+      recurrence_until: null,
+      map_url: null,
+      created_by: ids.admin,
     },
   ],
   registrations: [],
@@ -202,7 +368,7 @@ export const seed: Data = {
       id: "80000000-0000-4000-8000-000000000002",
       title: "Démarche et étapes",
       description:
-        "Retrouvez les étapes et les documents à consulter directement auprès de la source officielle.",
+        "Retrouvez les étapes et les documents à consulter directement auprès de la source officielle : avis, projet d’apprentissage, bilans et suivi.",
       category: "Démarches",
       url: "https://www.quebec.ca/education/prescolaire-primaire-et-secondaire/programmes-formations-evaluation/enseignement-maison/demarche-etapes",
       source: "Gouvernement du Québec",
@@ -218,7 +384,205 @@ export const seed: Data = {
       source: "Gouvernement du Québec",
       checked_at: "2026-09-05",
     },
+    {
+      id: "80000000-0000-4000-8000-000000000004",
+      title: "Guide des exigences (PDF officiel)",
+      description:
+        "Le guide gouvernemental détaillé. Long à lire : nos cours « Faire ses premiers pas » et « Préparer ses bilans » proposent par où commencer.",
+      category: "Démarches",
+      url: "https://cdn-contenu.quebec.ca/cdn-contenu/education/enseignement-maison/Guide-exigences-enseignement-maison.pdf",
+      source: "Gouvernement du Québec",
+      checked_at: "2026-09-05",
+    },
+    {
+      id: "80000000-0000-4000-8000-000000000005",
+      title: "Vie privée : collecte de renseignements personnels",
+      description:
+        "Repères de la Commission d’accès à l’information pour comprendre ce qu’une entreprise peut collecter. Utile pour choisir vos outils et applications.",
+      category: "Vie privée",
+      url: "https://www.cai.gouv.qc.ca/protection-renseignements-personnels/information-entreprises-privees/collecte-renseignements-personnels_entreprises",
+      source: "Commission d’accès à l’information du Québec",
+      checked_at: "2026-09-05",
+    },
   ],
+  favorites: [],
   documents: [],
   reports: [],
+  tutors: [
+    {
+      id: ids.tutorNadia,
+      profile_id: ids.tutor,
+      display_name: "Nadia",
+      subjects: ["Mathématiques", "Sciences"],
+      qualifications:
+        "Baccalauréat en enseignement au secondaire (fictif) · 6 ans d’expérience en soutien individuel · Références vérifiées par l’équipe (fictif)",
+      bio: "J’aime partir de ce que l’enfant comprend déjà pour construire la suite, avec des manipulations concrètes. Séances individuelles, en ligne ou à la bibliothèque.",
+      rate_hint: "Environ 55 $ / heure, facturé directement par la tutrice",
+      region: "Montréal",
+      mode: "les deux",
+      published: true,
+    },
+    {
+      id: ids.tutorKarim,
+      profile_id: null,
+      display_name: "Karim",
+      subjects: ["Français", "Anglais"],
+      qualifications:
+        "Maîtrise en didactique des langues (fictif) · Ateliers de lecture pour 6–12 ans · Références vérifiées par l’équipe (fictif)",
+      bio: "Lecture, écriture et plaisir des mots. Je propose des séances courtes et régulières plutôt que de longs blocs.",
+      rate_hint: "45 à 60 $ / heure selon la formule, facturé directement",
+      region: "Laval et Rive-Nord",
+      mode: "en ligne",
+      published: true,
+    },
+    {
+      id: "90000000-0000-4000-8000-000000000003",
+      profile_id: null,
+      display_name: "Profil en préparation",
+      subjects: ["Musique"],
+      qualifications: "Vérification des références en cours (fictif)",
+      bio: "",
+      rate_hint: "",
+      region: "Montréal",
+      mode: "en personne",
+      published: false,
+    },
+  ],
+  tutor_availability: [
+    {
+      id: "91000000-0000-4000-8000-000000000001",
+      tutor_id: ids.tutorNadia,
+      weekday: 2,
+      start_time: "13:00",
+      end_time: "16:00",
+    },
+    {
+      id: "91000000-0000-4000-8000-000000000002",
+      tutor_id: ids.tutorNadia,
+      weekday: 4,
+      start_time: "09:00",
+      end_time: "12:00",
+    },
+    {
+      id: "91000000-0000-4000-8000-000000000003",
+      tutor_id: ids.tutorKarim,
+      weekday: 3,
+      start_time: "14:00",
+      end_time: "17:00",
+    },
+    {
+      id: "91000000-0000-4000-8000-000000000004",
+      tutor_id: ids.tutorKarim,
+      weekday: 6,
+      start_time: "09:00",
+      end_time: "12:00",
+    },
+  ],
+  bookings: [
+    {
+      id: "92000000-0000-4000-8000-000000000001",
+      tutor_id: ids.tutorNadia,
+      family_id: ids.family,
+      user_id: ids.parent,
+      child: "Lina",
+      subject: "Mathématiques",
+      date: "2026-09-01",
+      time: "13:00",
+      weekly: true,
+      status: "terminée",
+      note: "Lina bloque sur les fractions; elle aime dessiner.",
+      created_at: "2026-08-25T14:00:00Z",
+    },
+    {
+      id: "92000000-0000-4000-8000-000000000002",
+      tutor_id: ids.tutorNadia,
+      family_id: ids.family,
+      user_id: ids.parent,
+      child: "Lina",
+      subject: "Mathématiques",
+      date: "2026-09-08",
+      time: "13:00",
+      weekly: true,
+      status: "confirmée",
+      note: "Suite des fractions avec des parts de pizza en carton.",
+      created_at: "2026-09-02T09:00:00Z",
+    },
+  ],
+  tutor_reports: [
+    {
+      id: "93000000-0000-4000-8000-000000000001",
+      booking_id: "92000000-0000-4000-8000-000000000001",
+      tutor_id: ids.tutorNadia,
+      body: "Lina a représenté 1/2, 1/4 et 3/4 avec des bandes de papier et a comparé les parts sans hésiter. Elle confond encore « dénominateur » et « numérateur » quand on passe à l’écrit. Piste pour la maison : partager une collation en parts égales et nommer chaque part à voix haute. Observation pédagogique, sans valeur d’évaluation officielle.",
+      created_at: "2026-09-01T14:10:00Z",
+    },
+  ],
+  children: [
+    {
+      id: "94000000-0000-4000-8000-000000000001",
+      family_id: ids.family,
+      name: "Lina",
+      birth_year: 2018,
+      notes: "Adore dessiner; a besoin de bouger avant les activités assises.",
+    },
+    {
+      id: "94000000-0000-4000-8000-000000000002",
+      family_id: ids.family,
+      name: "Adam",
+      birth_year: 2020,
+      notes: "Construit tout le temps; écoute bien les histoires.",
+    },
+    {
+      id: "94000000-0000-4000-8000-000000000003",
+      family_id: ids.otherFamily,
+      name: "Yanis",
+      birth_year: 2017,
+      notes: "",
+    },
+  ],
+  week_plans: [
+    {
+      id: "95000000-0000-4000-8000-000000000001",
+      family_id: ids.family,
+      week_start: "2026-09-07",
+      intentions:
+        "Lire ensemble chaque matin, même dix minutes.\nSortir observer les arbres au moins deux fois.\nGarder le mardi après-midi souple autour de la séance de Lina.",
+    },
+  ],
+  library_items: [
+    {
+      id: "96000000-0000-4000-8000-000000000001",
+      family_id: ids.family,
+      title: "Guide d’identification des arbres du Québec",
+      kind: "livre",
+      author: "Emprunté à la bibliothèque (fictif)",
+      url: null,
+      child: "Lina",
+      notes: "Pour le carnet nature du mardi.",
+      created_at: "2026-09-03T12:00:00Z",
+    },
+    {
+      id: "96000000-0000-4000-8000-000000000002",
+      family_id: ids.family,
+      title: "Alloprof — exercices et explications",
+      kind: "lien",
+      author: "Alloprof",
+      url: "https://www.alloprof.qc.ca/",
+      child: "Toute la famille",
+      notes:
+        "Ressource publique québécoise; à utiliser pour réviser après le tutorat.",
+      created_at: "2026-09-04T12:00:00Z",
+    },
+  ],
+  notes: [
+    {
+      id: "97000000-0000-4000-8000-000000000001",
+      family_id: ids.family,
+      child: "Adam",
+      date: "2026-09-03",
+      title: "Le pont en cartons",
+      body: "Adam a construit un pont qui tient avec trois boîtes et une planchette. Il dit : « Il faut mettre les gros en bas. » Question ouverte : pourquoi le pont plie au milieu ?",
+      created_at: "2026-09-03T16:00:00Z",
+    },
+  ],
 };

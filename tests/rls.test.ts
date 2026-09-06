@@ -1,6 +1,6 @@
 import { beforeAll, afterAll, describe, it, expect } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 let db: PGlite;
 const a = "10000000-0000-4000-8000-000000000001",
   b = "10000000-0000-4000-8000-000000000002",
@@ -29,9 +29,8 @@ beforeAll(async () => {
  alter table storage.objects enable row level security;
  grant select,insert,update,delete on storage.objects to authenticated;
  create function storage.foldername(name text) returns text[] language sql immutable as $$ select string_to_array(name,'/') $$;`);
-  await db.exec(
-    readFileSync("supabase/migrations/202609060001_parented.sql", "utf8"),
-  );
+  for (const file of readdirSync("supabase/migrations").sort())
+    await db.exec(readFileSync("supabase/migrations/" + file, "utf8"));
   await db.exec(readFileSync("supabase/seed.sql", "utf8"));
   await db.query(
     `insert into auth.users values ($1,'{"display_name":"Amélie","role":"admin","family_id":"forged"}'),($2,'{"display_name":"Sami"}'),($3,'{"display_name":"Camille"}')`,
@@ -257,5 +256,198 @@ describe.sequential("Migration PostgreSQL et règles RLS", () => {
       );
     expect(await rows("select * from tasks")).toEqual(tasks);
     await db.exec("rollback");
+  });
+});
+describe.sequential("Migration V2 : tutorat, groupes, favoris, famille", () => {
+  const tutorId = "90000000-0000-4000-8000-000000000001";
+  const tutorAccount = "10000000-0000-4000-8000-000000000004";
+  let booking: string;
+  it("ne permet ni de se déclarer tuteur ni de modifier un profil de tuteur sans lien", async () => {
+    await db.exec("reset role");
+    await db.query(
+      'insert into auth.users values ($1,\'{"display_name":"Nadia"}\')',
+      [tutorAccount],
+    );
+    await actor(a);
+    await expect(db.exec("update profiles set role='tutor'")).rejects.toThrow(
+      /permission denied/,
+    );
+    expect(
+      (
+        await db.query(
+          "update tutors set published=false where id=$1 returning *",
+          [tutorId],
+        )
+      ).rows,
+    ).toHaveLength(0);
+    await db.exec("reset role");
+    await db.query("update profiles set role='tutor' where id=$1", [
+      tutorAccount,
+    ]);
+    await db.query("update tutors set profile_id=$1 where id=$2", [
+      tutorAccount,
+      tutorId,
+    ]);
+  });
+  it("laisse une famille demander une séance et la tutrice la confirmer, sans fuite vers une autre famille", async () => {
+    await actor(a);
+    await expect(
+      db.query(
+        "insert into bookings(tutor_id,child,subject,date,time,status) values ($1,'Lina','Maths','2026-09-10','09:00','confirmée')",
+        [tutorId],
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await expect(
+      db.query(
+        "insert into bookings(tutor_id,child,subject,date,time) values ('90000000-0000-4000-8000-000000000003','Lina','Musique','2026-09-10','09:00')",
+      ),
+    ).rejects.toThrow(/row-level security/);
+    booking = String(
+      (
+        await db.query(
+          "insert into bookings(tutor_id,child,subject,date,time) values ($1,'Lina','Maths','2026-09-10','09:00') returning id",
+          [tutorId],
+        )
+      ).rows[0].id,
+    );
+    await expect(
+      db.query("update bookings set status='confirmée' where id=$1", [booking]),
+    ).rejects.toThrow(/row-level security/);
+    await actor(b);
+    expect(await rows("select * from bookings")).toHaveLength(0);
+    await actor(tutorAccount);
+    expect(await rows("select * from bookings")).toHaveLength(1);
+    expect(
+      (
+        await db.query(
+          "update bookings set status='confirmée' where id=$1 returning *",
+          [booking],
+        )
+      ).rows,
+    ).toHaveLength(1);
+    await db.query(
+      "insert into tutor_reports(booking_id,tutor_id,body) values ($1,$2,'Observation')",
+      [booking, tutorId],
+    );
+    await actor(a);
+    expect(await rows("select * from tutor_reports")).toHaveLength(1);
+    await expect(
+      db.query(
+        "insert into tutor_reports(booking_id,tutor_id,body) values ($1,$2,'Faux')",
+        [booking, tutorId],
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await actor(b);
+    expect(await rows("select * from tutor_reports")).toHaveLength(0);
+    await actor(admin);
+    expect(await rows("select * from bookings")).toHaveLength(1);
+  });
+  it("garde enfants, plan hebdomadaire, bibliothèque et notes dans la famille, même pour l’administration", async () => {
+    await actor(a);
+    await db.exec("insert into children(name) values ('Lina')");
+    await db.exec(
+      "insert into week_plans(week_start,intentions) values ('2026-09-07','Lire')",
+    );
+    await db.exec(
+      "insert into library_items(title,kind) values ('Livre A','livre')",
+    );
+    await db.exec("insert into notes(title,body) values ('Trace A','Texte')");
+    await expect(
+      db.query("insert into children(family_id,name) values ($1,'Intrus')", [
+        fb,
+      ]),
+    ).rejects.toThrow(/row-level security/);
+    await expect(
+      db.exec(
+        "insert into library_items(title,kind,url) values ('X','lien','http://insecure')",
+      ),
+    ).rejects.toThrow();
+    await actor(b);
+    expect(await rows("select * from children")).toHaveLength(0);
+    expect(await rows("select * from notes")).toHaveLength(0);
+    await actor(admin);
+    expect(await rows("select * from children")).toHaveLength(0);
+    expect(await rows("select * from week_plans")).toHaveLength(0);
+    expect(await rows("select * from library_items")).toHaveLength(0);
+  });
+  it("gère favoris personnels, adhésion aux groupes et questions répondues par l’équipe", async () => {
+    await actor(a);
+    await db.exec(
+      "insert into favorites(resource_id) values ('80000000-0000-4000-8000-000000000001')",
+    );
+    await expect(
+      db.exec(
+        "insert into favorites(resource_id) values ('80000000-0000-4000-8000-000000000001')",
+      ),
+    ).rejects.toThrow(/unique/);
+    await db.exec(
+      "insert into group_members(group_id) values ('a0000000-0000-4000-8000-000000000001')",
+    );
+    await expect(
+      db.exec("insert into groups(name) values ('Pirate')"),
+    ).rejects.toThrow(/row-level security/);
+    await db.exec(
+      "insert into lesson_questions(lesson_id,body) values ('40000000-0000-4000-8000-000000000001','Question ?')",
+    );
+    expect(
+      (await db.query("update lesson_questions set answer='Faux' returning *"))
+        .rows,
+    ).toHaveLength(0);
+    await expect(
+      db.exec(
+        "insert into lesson_questions(lesson_id,body,answer) values ('40000000-0000-4000-8000-000000000001','Q','Auto-réponse')",
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await actor(b);
+    expect(await rows("select * from favorites")).toHaveLength(0);
+    expect((await rows("select * from lesson_questions"))[0].author).toBe(
+      "Amélie",
+    );
+    await actor(admin);
+    expect(
+      (
+        await db.query(
+          "update lesson_questions set answer='Réponse', answered_at=now() returning *",
+        )
+      ).rows,
+    ).toHaveLength(1);
+  });
+  it("laisse un membre proposer une rencontre non publiée, visible de lui et de l’équipe seulement", async () => {
+    await actor(b);
+    await expect(
+      db.exec(
+        "insert into events(title,description,date,time,location,organizer,age,published) values ('Pirate','x','2026-10-01','10:00','Parc','Sami — membre','Tous',true)",
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await db.exec(
+      "insert into events(id,title,description,date,time,location,organizer,age) values ('70000000-0000-4000-8000-000000000099','Proposition','x','2026-10-01','10:00','Parc','Sami — membre','Tous')",
+    );
+    expect(
+      await rows("select * from events where title='Proposition'"),
+    ).toHaveLength(1);
+    await expect(
+      db.exec("update events set published=true where title='Proposition'"),
+    ).rejects.toThrow(/row-level security/);
+    await actor(a);
+    expect(
+      await rows("select * from events where title='Proposition'"),
+    ).toHaveLength(0);
+    await expect(
+      db.exec(
+        "insert into registrations(event_id) values ('70000000-0000-4000-8000-000000000099')",
+      ),
+    ).rejects.toThrow(/row-level security/);
+    await actor(admin);
+    expect(
+      (
+        await db.query(
+          "update events set published=true where title='Proposition' returning *",
+        )
+      ).rows,
+    ).toHaveLength(1);
+    await actor(a);
+    expect(
+      await rows("select * from events where title='Proposition'"),
+    ).toHaveLength(1);
   });
 });

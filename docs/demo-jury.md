@@ -27,15 +27,19 @@ Avec Supabase local configuré, utiliser les comptes de démonstration créés p
 | 6. Entraide | Lire la discussion sur les promenades; publier une réponse fictive | L’expérience des parents devient une ressource partagée |
 | 7. Rencontres | S’inscrire à la matinée au jardin; recharger puis montrer le calendrier | Inscription enregistrée et rencontre située dans le temps |
 | 8. Isolation | Se déconnecter puis entrer avec Sami | Sa progression et son planning sont distincts de ceux d’Amélie |
-| 9. Administration, facultatif | Entrer avec Camille, modifier un cours ou traiter un signalement | L’équipe anime et maintient les contenus; elle n’accède pas aux dossiers des familles |
+| 9. Tutorat | Dans « Tutorat », montrer la séance hebdomadaire de Lina avec Nadia et son compte rendu; demander une séance à Karim (mercredi) | Soutien complémentaire réservé dans ParentEd, facturé directement par le tuteur; le parent reste l’enseignant |
+| 10. Espace tutrice | Se déconnecter, entrer avec Nadia : confirmer une demande, rédiger un compte rendu | Le tuteur voit uniquement ses séances; le compte rendu est une observation, pas une évaluation officielle |
+| 11. Groupes et favoris | Rejoindre « Montréal et environs »; mettre une ressource en favori | Communauté par région ou thème; bibliothèque personnelle |
+| 12. Proposer une rencontre | Avec Amélie, proposer une rencontre; avec Camille, la publier depuis l’onglet Rencontres | Les membres animent, l’équipe vérifie avant publication |
+| 13. Administration, facultatif | Entrer avec Camille, modifier un cours, répondre à la question de Sami ou traiter un signalement | L’équipe anime et maintient les contenus; elle n’accède pas aux dossiers des familles |
 
-Pour un format de trois minutes : étapes 1 à 4, puis 7. Ne pas inventer un échange réel avec une famille, un paiement, un courriel ou une réservation externe.
+Pour un format de trois minutes : étapes 1 à 4, puis 7 et 9. Ne pas inventer un échange réel avec une famille, un paiement, un courriel ou une réservation externe.
 
 ## Réponse au brief de modèle d’affaires
 
 Les hypothèses ci-dessous sont **des propositions de travail**, non des tarifs proposés dans le produit. Références : `ParentEd-modele-operationnel-et-financier.md`, puis les corrections de `ParentEd-couts-techniques-et-equipe.md`. Les décisions Supabase/Cloudflare remplacent les anciennes propositions Vercel.
 
-- **Qui paie et combien ?** Hypothèse historique : abonnement familial de 49 CAD/mois. Prix, contenu commercial et acceptation par les familles restent à valider. Aucun encaissement dans la V1. Les frais de tutorat proposés restent séparés et le tutorat n’est pas opérationnel dans le produit.
+- **Qui paie et combien ?** Hypothèse historique : abonnement familial de 49 CAD/mois. Prix, contenu commercial et acceptation par les familles restent à valider. Aucun encaissement dans la V1. Les frais de tutorat restent séparés : la réservation et le compte rendu fonctionnent dans le produit, la facturation se fait entre le tuteur et la famille.
 - **Viabilité après l’année 1 ?** Le scénario corrigé retient 78 000 CAD de coûts annuels fixes. Avec l’hypothèse de frais de 2,064 CAD par mensualité, le seuil calculé est de 139 familles payantes moyennes sur douze mois; à 150 familles, résultat hypothétique de 6 484,80 CAD avant impôt et coûts additionnels. Ces calculs ne démontrent ni acquisition, ni rétention, ni capacité de support. L’année 1 exige un financement propre à valider; ce n’est pas une activité immédiatement autofinancée.
 - **Qui enseigne ?** Le parent assure l’enseignement des enfants. Une équipe pédagogique doit produire et relire les cours pour les parents. Les textes actuels sont des contenus de démonstration, pas une bibliothèque pédagogique validée. La coordination anime et modère; ses capacités humaines ne sont pas remplacées par l’application.
 - **Combien d’enfants ensemble ?** Aucun modèle de classe dans cette V1. Les rencontres supposent la présence et la supervision des parents. La proposition historique de 6 à 10 familles est un repère de confort à valider selon lieu et activité, pas un ratio légal ni une capacité imposée par le logiciel. Le tutorat individuel futur reste distinct.
@@ -44,8 +48,8 @@ Les hypothèses ci-dessous sont **des propositions de travail**, non des tarifs 
 
 ## Réellement opérationnel / limites
 
-**Exécuté en démonstration locale :** entrée dans les profils fictifs, cours, progression persistante, tâches, réponse communautaire, inscription persistante, administration de contenu; interface responsive. Les règles SQL sont exécutées par les tests PostgreSQL, y compris l’isolation de fichiers.
+**Exécuté en démonstration locale :** entrée dans les profils fictifs, cours avec modèles, notes et questions, progression persistante, semaine par enfant et plan hebdomadaire, portfolio, favoris, groupes, rencontres récurrentes et propositions, tutorat (demande, confirmation, compte rendu), administration de contenu; interface responsive. Les règles SQL sont exécutées par les tests PostgreSQL, y compris l’isolation de fichiers.
 
 **Implémenté, à valider sur Supabase complet :** authentification courriel/mot de passe, écritures PostgreSQL via PostgREST, fichiers privés via Storage. Aucun service distant n’a été connecté. La prévisualisation Cloudflare a été testée; aucun site publié.
 
-**À compléter pour un pilote réel :** instance Supabase, recette Auth/Storage, comptes et récupération, contenus pédagogiques et animation réelle, traitement des données et sauvegarde complète. Ensuite seulement, décider des intégrations différées : paiements, vidéo, tutorat, carte, rappels et IA.
+**À compléter pour un pilote réel :** instance Supabase, recette Auth/Storage, comptes et récupération, contenus pédagogiques et animation réelle, traitement des données et sauvegarde complète. Ensuite seulement, décider des intégrations différées : paiements, vidéo hébergée, carte embarquée, rappels par courriel et IA. Marche à suivre : `docs/deploiement.md`.

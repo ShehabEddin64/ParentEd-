@@ -5,6 +5,10 @@ import {
   required,
   validateFile,
   safeUrl,
+  occurrences,
+  icsFor,
+  isWeekend,
+  shiftMonth,
 } from "../src/domain";
 import { seed, ids } from "../src/data/seed";
 import { DemoGateway } from "../src/data/demo";
@@ -131,4 +135,118 @@ it("télécharge un fichier local sans appel réseau et refuse une autre famille
   await expect(api.download(ids.family + "/test")).rejects.toThrow(
     "Accès refusé",
   );
+});
+
+describe("Rencontres récurrentes et rappels", () => {
+  it("développe les occurrences hebdomadaires jusqu’à la date de fin, sans dépasser la fenêtre", () => {
+    const weekly = seed.events.find((e) => e.recurrence === "weekly")!;
+    const all = occurrences([weekly], "2026-09-07", "2026-09-30");
+    expect(all.map((o) => o.date)).toEqual([
+      "2026-09-08",
+      "2026-09-15",
+      "2026-09-22",
+      "2026-09-29",
+    ]);
+    expect(occurrences([weekly], "2026-12-01", "2026-12-31")).toHaveLength(0);
+    const once = seed.events.find((e) => e.recurrence === "none")!;
+    expect(occurrences([once], "2026-09-01", "2026-12-31")).toHaveLength(1);
+    expect(occurrences([once], "2026-10-01", "2026-12-31")).toHaveLength(0);
+    expect(isWeekend("2026-09-19")).toBe(true);
+    expect(isWeekend("2026-09-15")).toBe(false);
+    expect(shiftMonth("2026-01-31", 1)).toBe("2026-02-28");
+  });
+  it("produit un fichier iCalendar avec règle de récurrence et alarme", () => {
+    const weekly = seed.events.find((e) => e.recurrence === "weekly")!;
+    const ics = icsFor(weekly, "2026-09-15");
+    expect(ics).toContain("BEGIN:VCALENDAR");
+    expect(ics).toContain("DTSTART;TZID=America/Toronto:20260915T143000");
+    expect(ics).toContain("RRULE:FREQ=WEEKLY;UNTIL=20261124T235959");
+    expect(ics).toContain("BEGIN:VALARM");
+    expect(ics).not.toContain("undefined");
+  });
+});
+describe("Tutorat, groupes et portfolio en démonstration", () => {
+  it("laisse la famille demander une séance, la tutrice la confirmer et rédiger un compte rendu lisible par la famille seule", async () => {
+    const storage = new MemoryStorage();
+    const api = new DemoGateway(storage);
+    await api.login("amelie@demo.parented.test");
+    const booking = {
+      id: crypto.randomUUID(),
+      tutor_id: ids.tutorNadia,
+      family_id: ids.family,
+      user_id: ids.parent,
+      child: "Adam",
+      subject: "Sciences",
+      date: "2026-09-10",
+      time: "09:00",
+      weekly: false,
+      status: "demandée" as const,
+      note: "",
+      created_at: new Date().toISOString(),
+    };
+    await api.save("bookings", booking);
+    await expect(
+      api.save("bookings", {
+        ...booking,
+        id: crypto.randomUUID(),
+        status: "confirmée",
+      }),
+    ).rejects.toThrow("Accès refusé");
+    await api.logout();
+    await api.login("nadia@demo.parented.test");
+    expect((await api.load()).bookings.map((b) => b.id)).toContain(booking.id);
+    await api.save("bookings", { ...booking, status: "confirmée" });
+    const report = {
+      id: crypto.randomUUID(),
+      booking_id: booking.id,
+      tutor_id: ids.tutorNadia,
+      body: "Observation fictive.",
+      created_at: new Date().toISOString(),
+    };
+    await api.save("tutor_reports", report);
+    await api.logout();
+    await api.login("sami@demo.parented.test");
+    const sami = await api.load();
+    expect(sami.bookings).toHaveLength(0);
+    expect(sami.tutor_reports).toHaveLength(0);
+    await expect(
+      api.save("tutor_reports", { ...report, id: crypto.randomUUID() }),
+    ).rejects.toThrow();
+    await api.logout();
+    await api.login("amelie@demo.parented.test");
+    const amelie = await api.load();
+    expect(amelie.bookings.find((b) => b.id === booking.id)?.status).toBe(
+      "confirmée",
+    );
+    expect(amelie.tutor_reports.map((r) => r.id)).toContain(report.id);
+  });
+  it("garde les enfants, notes et propositions de rencontre dans leur périmètre", async () => {
+    const api = new DemoGateway(new MemoryStorage());
+    await api.login("sami@demo.parented.test");
+    expect((await api.load()).children.map((c) => c.name)).toEqual(["Yanis"]);
+    await expect(
+      api.save("notes", { ...seed.notes[0], id: crypto.randomUUID() }),
+    ).rejects.toThrow("Accès refusé");
+    const draft = {
+      ...seed.events[0],
+      id: crypto.randomUUID(),
+      published: false,
+      featured: false,
+      created_by: ids.other,
+    };
+    await api.save("events", draft);
+    await expect(
+      api.save("events", { ...draft, published: true }),
+    ).rejects.toThrow("Accès refusé");
+    await api.logout();
+    await api.login("amelie@demo.parented.test");
+    expect((await api.load()).events.map((e) => e.id)).not.toContain(draft.id);
+    await api.logout();
+    await api.login("admin@demo.parented.test");
+    expect((await api.load()).events.map((e) => e.id)).toContain(draft.id);
+    await api.save("events", { ...draft, published: true });
+    await api.logout();
+    await api.login("amelie@demo.parented.test");
+    expect((await api.load()).events.map((e) => e.id)).toContain(draft.id);
+  });
 });

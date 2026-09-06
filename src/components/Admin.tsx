@@ -1,126 +1,351 @@
 import { useState, type FormEvent } from "react";
-import { Plus, Pencil, ShieldCheck } from "lucide-react";
+import { Plus, Pencil, ShieldCheck, Megaphone, Trash2 } from "lucide-react";
 import type { Props } from "../App";
-import type { Course, Lesson, Event, Resource } from "../domain";
-import { localDate, required, safeUrl } from "../domain";
+import type {
+  Course,
+  Lesson,
+  Event,
+  Resource,
+  Group,
+  Tutor,
+  TutorAvailability,
+  Recurrence,
+} from "../domain";
+import {
+  bookingStatusLabels,
+  formatDate,
+  localDate,
+  optional,
+  recurrenceLabels,
+  required,
+  safeUrl,
+  weekdayNames,
+} from "../domain";
 import { PageTitle, Empty } from "./ui";
-type Kind = "courses" | "lessons" | "events" | "resources";
-type Editable = Course | Lesson | Event | Resource;
+type Kind =
+  | "courses"
+  | "lessons"
+  | "events"
+  | "resources"
+  | "groups"
+  | "tutors"
+  | "tutor_availability";
+type Tab = Kind | "questions" | "bookings" | "reports";
+type Editable =
+  Course | Lesson | Event | Resource | Group | Tutor | TutorAvailability;
+const labels: Record<Tab, string> = {
+  courses: "Cours",
+  lessons: "Leçons",
+  events: "Rencontres",
+  resources: "Ressources",
+  groups: "Groupes",
+  tutors: "Tuteurs",
+  tutor_availability: "Disponibilités",
+  questions: "Questions",
+  bookings: "Séances",
+  reports: "Signalements",
+};
+const fields: Record<Kind, string[]> = {
+  courses: ["title", "description", "category", "position", "published"],
+  lessons: [
+    "course_id",
+    "title",
+    "body",
+    "exercise",
+    "template",
+    "video_url",
+    "minutes",
+    "position",
+  ],
+  events: [
+    "title",
+    "description",
+    "date",
+    "time",
+    "location",
+    "region",
+    "organizer",
+    "age",
+    "price",
+    "recurrence",
+    "recurrence_until",
+    "map_url",
+    "featured",
+    "published",
+  ],
+  resources: [
+    "title",
+    "description",
+    "category",
+    "url",
+    "source",
+    "checked_at",
+  ],
+  groups: ["name", "description", "kind"],
+  tutors: [
+    "display_name",
+    "subjects",
+    "qualifications",
+    "bio",
+    "rate_hint",
+    "region",
+    "mode",
+    "profile_id",
+    "published",
+  ],
+  tutor_availability: ["tutor_id", "weekday", "start_time", "end_time"],
+};
+const fieldLabels: Record<string, string> = {
+  title: "Titre",
+  name: "Nom",
+  display_name: "Nom affiché",
+  description: "Description",
+  category: "Catégorie",
+  position: "Ordre",
+  published: "Publié",
+  featured: "Mis en avant (annonce à la une)",
+  course_id: "Cours associé",
+  body: "Texte de la leçon",
+  exercise: "Exercice proposé",
+  template:
+    "Modèle réutilisable (première ligne = titre du modèle; facultatif)",
+  video_url: "Lien de la vidéo originale (HTTPS, facultatif)",
+  minutes: "Durée en minutes",
+  date: "Date",
+  time: "Heure",
+  location: "Lieu",
+  region: "Région",
+  organizer: "Organisateur",
+  age: "Public / âges",
+  price: "Prix",
+  recurrence: "Récurrence",
+  recurrence_until: "Récurrence jusqu’au (facultatif)",
+  map_url: "Lien carte (HTTPS, facultatif)",
+  url: "Lien officiel (HTTPS)",
+  source: "Source",
+  checked_at: "Date du relevé de la source",
+  kind: "Type de groupe",
+  subjects: "Matières (séparées par des virgules)",
+  qualifications: "Qualifications et références vérifiées",
+  bio: "Présentation",
+  rate_hint: "Tarif indicatif (facturé par le tuteur)",
+  mode: "Mode",
+  profile_id: "Identifiant du compte tuteur (UUID, facultatif)",
+  tutor_id: "Tuteur",
+  weekday: "Jour",
+  start_time: "Début",
+  end_time: "Fin",
+};
+const textareas = [
+  "body",
+  "description",
+  "exercise",
+  "template",
+  "qualifications",
+  "bio",
+];
+const optionalFields = [
+  "template",
+  "video_url",
+  "recurrence_until",
+  "map_url",
+  "profile_id",
+  "rate_hint",
+  "bio",
+  "qualifications",
+  "region",
+  "description",
+];
 export function Admin({ data, api, run, busy }: Props) {
-  const [tab, setTab] = useState<Kind | "reports">("courses");
+  const [tab, setTab] = useState<Tab>("courses");
   const [edit, setEdit] = useState<Partial<Editable> | null>(null);
   const [deletePost, setDeletePost] = useState("");
-  const labels = {
-    courses: "Cours",
-    lessons: "Leçons",
-    events: "Événements",
-    resources: "Ressources",
-    reports: "Signalements",
-  };
-  const fields: Record<Kind, string[]> = {
-    courses: ["title", "description", "category", "position", "published"],
-    lessons: ["course_id", "title", "body", "exercise", "minutes", "position"],
-    events: [
-      "title",
-      "description",
-      "date",
-      "time",
-      "location",
-      "organizer",
-      "age",
-      "published",
-    ],
-    resources: [
-      "title",
-      "description",
-      "category",
-      "url",
-      "source",
-      "checked_at",
-    ],
-  };
-  const fieldLabels: Record<string, string> = {
-    title: "Titre",
-    description: "Description",
-    category: "Catégorie",
-    position: "Ordre",
-    published: "Publié",
-    course_id: "Cours associé",
-    body: "Texte de la leçon",
-    exercise: "Exercice proposé",
-    minutes: "Durée en minutes",
-    date: "Date",
-    time: "Heure",
-    location: "Lieu",
-    organizer: "Organisateur",
-    age: "Public / âges",
-    url: "Lien officiel (HTTPS)",
-    source: "Source",
-    checked_at: "Date du relevé de la source",
-  };
+  const [deleteRow, setDeleteRow] = useState("");
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (tab === "reports") return;
+    if (!(tab in fields)) return;
+    const kind = tab as Kind;
     const f = new FormData(e.currentTarget);
-    const get = (n: string) =>
-      required(String(f.get(n) || ""), n === "title" ? 160 : 10000);
+    const text = (n: string, max = 10000) =>
+      required(String(f.get(n) || ""), max);
+    const opt = (n: string, max = 10000) =>
+      optional(String(f.get(n) || ""), max);
+    const https = (n: string) => {
+      const v = opt(n);
+      if (v && !safeUrl(v))
+        throw new Error(`« ${fieldLabels[n]} » doit utiliser HTTPS.`);
+      return v || null;
+    };
     const id = edit?.id || crypto.randomUUID();
     const ok = await run(async () => {
-      if (tab === "courses")
-        await api.save(tab, {
+      if (kind === "courses")
+        await api.save(kind, {
           id,
-          title: get("title"),
-          description: get("description"),
-          category: get("category"),
+          title: text("title", 160),
+          description: text("description"),
+          category: text("category", 80),
           position: Number(f.get("position")),
           published: f.has("published"),
         });
-      if (tab === "lessons")
-        await api.save(tab, {
+      if (kind === "lessons")
+        await api.save(kind, {
           id,
-          course_id: get("course_id"),
-          title: get("title"),
-          body: get("body"),
-          exercise: get("exercise"),
+          course_id: text("course_id"),
+          title: text("title", 160),
+          body: text("body"),
+          exercise: text("exercise"),
+          template: opt("template"),
+          video_url: https("video_url"),
           minutes: Number(f.get("minutes")),
           position: Number(f.get("position")),
         });
-      if (tab === "events")
-        await api.save(tab, {
+      if (kind === "events")
+        await api.save(kind, {
           id,
-          title: get("title"),
-          description: get("description"),
-          date: get("date"),
-          time: get("time"),
-          location: get("location"),
-          organizer: get("organizer"),
-          age: get("age"),
+          title: text("title", 160),
+          description: text("description"),
+          date: text("date"),
+          time: text("time"),
+          location: text("location", 200),
+          region: opt("region", 120),
+          organizer: text("organizer", 160),
+          age: text("age", 80),
+          price: text("price", 120),
+          recurrence: String(f.get("recurrence")) as Recurrence,
+          recurrence_until: opt("recurrence_until") || null,
+          map_url: https("map_url"),
+          featured: f.has("featured"),
+          published: f.has("published"),
+          created_by: (edit as Partial<Event> | null)?.created_by ?? null,
+        });
+      if (kind === "resources") {
+        const url = text("url");
+        if (!safeUrl(url)) throw new Error("Le lien doit utiliser HTTPS.");
+        await api.save(kind, {
+          id,
+          title: text("title", 160),
+          description: text("description"),
+          category: text("category", 80),
+          url,
+          source: text("source", 160),
+          checked_at: text("checked_at"),
+        });
+      }
+      if (kind === "groups")
+        await api.save(kind, {
+          id,
+          name: text("name", 120),
+          description: opt("description", 1000),
+          kind: String(f.get("kind")) as Group["kind"],
+          created_at:
+            (edit as Partial<Group> | null)?.created_at ??
+            new Date().toISOString(),
+        });
+      if (kind === "tutors") {
+        const profile = opt("profile_id", 36);
+        if (profile && !/^[0-9a-f-]{36}$/i.test(profile))
+          throw new Error("L’identifiant du compte doit être un UUID.");
+        await api.save(kind, {
+          id,
+          profile_id: profile || null,
+          display_name: text("display_name", 80),
+          subjects: text("subjects", 400)
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          qualifications: opt("qualifications", 1000),
+          bio: opt("bio", 2000),
+          rate_hint: opt("rate_hint", 200),
+          region: opt("region", 120),
+          mode: String(f.get("mode")) as Tutor["mode"],
           published: f.has("published"),
         });
-      if (tab === "resources") {
-        const url = get("url");
-        if (!safeUrl(url)) throw new Error("Le lien doit utiliser HTTPS.");
-        await api.save(tab, {
+      }
+      if (kind === "tutor_availability") {
+        const start = text("start_time");
+        const end = text("end_time");
+        if (end <= start)
+          throw new Error("L’heure de fin doit suivre l’heure de début.");
+        await api.save(kind, {
           id,
-          title: get("title"),
-          description: get("description"),
-          category: get("category"),
-          url,
-          source: get("source"),
-          checked_at: get("checked_at"),
+          tutor_id: text("tutor_id"),
+          weekday: Number(f.get("weekday")),
+          start_time: start,
+          end_time: end,
         });
       }
     }, "Contenu enregistré.");
     if (ok) setEdit(null);
+  };
+  const proposals = data.events.filter(
+    (e) => !e.published && e.created_by && e.organizer.includes("membre"),
+  );
+  const pending = data.lesson_questions.filter((q) => !q.answer).length;
+  const summary = (row: Editable): string => {
+    if ("published" in row && "subjects" in row)
+      return `${row.subjects.join(", ")} · ${row.published ? "Publié" : "Brouillon"}`;
+    if ("published" in row && "organizer" in row)
+      return `${formatDate(row.date)} · ${row.published ? "Publié" : row.organizer.includes("membre") ? "Proposition à vérifier" : "Brouillon"}${row.featured ? " · À la une" : ""}`;
+    if ("published" in row) return row.published ? "Publié" : "Brouillon";
+    if ("course_id" in row)
+      return data.courses.find((c) => c.id === row.course_id)?.title ?? "";
+    if ("kind" in row)
+      return row.kind === "region" ? "Groupe régional" : "Groupe thématique";
+    if ("weekday" in row)
+      return `${data.tutors.find((t) => t.id === row.tutor_id)?.display_name ?? "?"} · ${weekdayNames[row.weekday]} ${row.start_time}–${row.end_time}`;
+    return "Ressource officielle";
+  };
+  const title = (row: Editable) =>
+    "title" in row
+      ? row.title
+      : "name" in row
+        ? row.name
+        : "display_name" in row
+          ? row.display_name
+          : "Créneau";
+  const select = (name: string, value: unknown) => {
+    const options: Record<string, [string, string][]> = {
+      course_id: data.courses.map((c) => [c.id, c.title]),
+      tutor_id: data.tutors.map((t) => [t.id, t.display_name]),
+      kind: [
+        ["theme", "Thématique"],
+        ["region", "Régional"],
+      ],
+      mode: [
+        ["les deux", "En ligne ou en personne"],
+        ["en ligne", "En ligne"],
+        ["en personne", "En personne"],
+      ],
+      recurrence: (Object.keys(recurrenceLabels) as Recurrence[]).map((r) => [
+        r,
+        recurrenceLabels[r],
+      ]),
+      weekday: weekdayNames.slice(1).map((d, i) => [String(i + 1), d]),
+    };
+    const list = options[name];
+    if (!list) return null;
+    return (
+      <select
+        name={name}
+        defaultValue={String(value ?? list[0]?.[0] ?? "")}
+        required
+      >
+        {list.map(([v, l]) => (
+          <option key={v} value={v}>
+            {l}
+          </option>
+        ))}
+      </select>
+    );
   };
   return (
     <>
       <PageTitle
         eyebrow="ADMINISTRATION DES CONTENUS"
         title="Faire vivre ParentEd."
-        description="Préparez les cours, les ressources et les rencontres. Modérez les échanges."
+        description="Préparez les cours, les ressources, les groupes, les rencontres et l’annuaire des tuteurs. Répondez aux questions et modérez les échanges."
         action={
-          tab !== "reports" && (
+          tab in fields && (
             <button className="button primary" onClick={() => setEdit({})}>
               <Plus size={18} />
               Ajouter
@@ -131,26 +356,29 @@ export function Admin({ data, api, run, busy }: Props) {
       <div className="privacy-banner">
         <ShieldCheck size={23} />
         <p>
-          L’administration des contenus ne donne pas accès aux documents ni aux
-          plannings des autres familles.
+          L’administration des contenus ne donne pas accès aux documents, notes,
+          enfants ni plannings des familles. Les rôles admin et tuteur sont
+          attribués en base par un opérateur autorisé.
         </p>
       </div>
       <div className="tabs">
-        {Object.entries(labels).map(([k, v]) => (
+        {(Object.keys(labels) as Tab[]).map((k) => (
           <button
             key={k}
             className={tab === k ? "active" : ""}
             onClick={() => {
-              setTab(k as typeof tab);
+              setTab(k);
               setEdit(null);
             }}
           >
-            {v}
+            {labels[k]}
             {k === "reports" && ` (${data.reports.length})`}
+            {k === "questions" && pending > 0 && ` (${pending})`}
+            {k === "events" && proposals.length > 0 && ` (${proposals.length})`}
           </button>
         ))}
       </div>
-      {edit && tab !== "reports" && (
+      {edit && tab in fields && (
         <form
           key={edit.id || tab}
           className="editor form-grid"
@@ -168,59 +396,51 @@ export function Admin({ data, api, run, busy }: Props) {
               Annuler
             </button>
           </div>
-          {fields[tab].map((name) => {
-            const value = (edit as Record<string, unknown>)[name];
+          {fields[tab as Kind].map((name) => {
+            const raw = (edit as Record<string, unknown>)[name];
+            const value = Array.isArray(raw) ? raw.join(", ") : raw;
+            const dropdown = select(name, value);
             return (
               <label
-                className={
-                  ["body", "description", "exercise"].includes(name)
-                    ? "span-2"
-                    : ""
-                }
+                className={textareas.includes(name) ? "span-2" : ""}
                 key={name}
               >
                 {fieldLabels[name]}
-                {name === "published" ? (
+                {["published", "featured"].includes(name) ? (
                   <input
                     type="checkbox"
                     name={name}
                     defaultChecked={Boolean(value)}
                   />
-                ) : name === "course_id" ? (
-                  <select
-                    name={name}
-                    defaultValue={String(value || data.courses[0]?.id || "")}
-                    required
-                  >
-                    {data.courses.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.title}
-                      </option>
-                    ))}
-                  </select>
-                ) : ["body", "description", "exercise"].includes(name) ? (
+                ) : dropdown ? (
+                  dropdown
+                ) : textareas.includes(name) ? (
                   <textarea
                     name={name}
-                    defaultValue={String(value || "")}
-                    required
+                    defaultValue={String(value ?? "")}
+                    required={!optionalFields.includes(name)}
                   />
                 ) : (
                   <input
                     name={name}
                     type={
-                      ["date", "checked_at"].includes(name)
+                      ["date", "checked_at", "recurrence_until"].includes(name)
                         ? "date"
-                        : name === "time"
+                        : ["time", "start_time", "end_time"].includes(name)
                           ? "time"
                           : ["minutes", "position"].includes(name)
                             ? "number"
-                            : name === "url"
+                            : ["url", "video_url", "map_url"].includes(name)
                               ? "url"
                               : "text"
                     }
                     min={name === "minutes" ? 1 : 0}
                     max={name === "minutes" ? 180 : undefined}
-                    maxLength={name === "title" ? 160 : undefined}
+                    maxLength={
+                      ["title", "display_name", "name"].includes(name)
+                        ? 160
+                        : undefined
+                    }
                     defaultValue={String(
                       value ??
                         (name === "position"
@@ -229,11 +449,15 @@ export function Admin({ data, api, run, busy }: Props) {
                             ? 5
                             : ["date", "checked_at"].includes(name)
                               ? localDate()
-                              : name === "time"
+                              : name === "time" || name === "start_time"
                                 ? "10:00"
-                                : ""),
+                                : name === "end_time"
+                                  ? "12:00"
+                                  : name === "price"
+                                    ? "Gratuit"
+                                    : ""),
                     )}
-                    required
+                    required={!optionalFields.includes(name)}
                   />
                 )}
               </label>
@@ -244,7 +468,7 @@ export function Admin({ data, api, run, busy }: Props) {
           </button>
         </form>
       )}
-      {tab === "reports" ? (
+      {tab === "reports" && (
         <div>
           {!data.reports.length && <Empty>Aucun signalement à traiter.</Empty>}
           {data.reports.map((r) => (
@@ -304,28 +528,177 @@ export function Admin({ data, api, run, busy }: Props) {
             </article>
           ))}
         </div>
-      ) : (
+      )}
+      {tab === "questions" && (
+        <div>
+          {!data.lesson_questions.length && (
+            <Empty>Aucune question pour le moment.</Empty>
+          )}
+          {[...data.lesson_questions]
+            .sort(
+              (a, b) =>
+                Number(Boolean(a.answer)) - Number(Boolean(b.answer)) ||
+                b.created_at.localeCompare(a.created_at),
+            )
+            .map((q) => {
+              const lesson = data.lessons.find((l) => l.id === q.lesson_id);
+              return (
+                <form
+                  className="editor"
+                  key={q.id}
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const f = new FormData(e.currentTarget);
+                    await run(
+                      () =>
+                        api.save("lesson_questions", {
+                          ...q,
+                          answer: required(String(f.get("answer")), 5000),
+                          answered_at: new Date().toISOString(),
+                        }),
+                      "Réponse publiée sous la leçon.",
+                    );
+                  }}
+                >
+                  <span className="pill">
+                    {q.answer ? "RÉPONDU" : "EN ATTENTE"}
+                  </span>
+                  <h2>{lesson?.title ?? "Leçon indisponible"}</h2>
+                  <p className="small muted">
+                    {q.author} ·{" "}
+                    {new Date(q.created_at).toLocaleDateString("fr-CA")}
+                  </p>
+                  <p className="preserve-lines">{q.body}</p>
+                  <label>
+                    Réponse de l’équipe (visible par tous les membres)
+                    <textarea
+                      name="answer"
+                      defaultValue={q.answer ?? ""}
+                      required
+                      maxLength={5000}
+                    />
+                  </label>
+                  <div className="discussion-actions">
+                    <button className="button primary" disabled={busy}>
+                      {q.answer
+                        ? "Mettre à jour la réponse"
+                        : "Publier la réponse"}
+                    </button>
+                    <button
+                      type="button"
+                      className="text-button danger"
+                      disabled={busy}
+                      onClick={() =>
+                        run(
+                          () => api.remove("lesson_questions", q.id),
+                          "Question supprimée.",
+                        )
+                      }
+                    >
+                      Supprimer la question
+                    </button>
+                  </div>
+                </form>
+              );
+            })}
+        </div>
+      )}
+      {tab === "bookings" && (
+        <div>
+          <p className="small muted">
+            Vue de coordination : suivi des demandes et des séances. Les tuteurs
+            confirment eux-mêmes; l’équipe peut annuler en cas de besoin.
+          </p>
+          {!data.bookings.length && <Empty>Aucune séance demandée.</Empty>}
+          <div className="admin-list">
+            {[...data.bookings]
+              .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time))
+              .map((b) => (
+                <article key={b.id}>
+                  <div>
+                    <strong>
+                      {b.subject} ·{" "}
+                      {data.tutors.find((t) => t.id === b.tutor_id)
+                        ?.display_name ?? "?"}
+                    </strong>
+                    <small>
+                      {formatDate(b.date)} · {b.time} ·{" "}
+                      {bookingStatusLabels[b.status]}
+                      {b.weekly && " · hebdomadaire"}
+                      {data.tutor_reports.some((r) => r.booking_id === b.id) &&
+                        " · compte rendu transmis"}
+                    </small>
+                  </div>
+                  {["demandée", "confirmée"].includes(b.status) && (
+                    <button
+                      className="button secondary"
+                      disabled={busy}
+                      onClick={() =>
+                        run(
+                          () =>
+                            api.save("bookings", { ...b, status: "annulée" }),
+                          "Séance annulée par l’équipe.",
+                        )
+                      }
+                    >
+                      Annuler
+                    </button>
+                  )}
+                </article>
+              ))}
+          </div>
+        </div>
+      )}
+      {tab in fields && (
         <div className="admin-list">
-          {data[tab].map((row) => (
+          {tab === "events" && proposals.length > 0 && (
+            <p className="small muted">
+              <Megaphone size={14} /> {proposals.length} proposition(s) de
+              membres à vérifier : ouvrir, relire, puis cocher « Publié ».
+            </p>
+          )}
+          {(data[tab as Kind] as Editable[]).map((row) => (
             <article key={row.id}>
               <div>
-                <strong>{row.title}</strong>
-                <small>
-                  {"published" in row
-                    ? row.published
-                      ? "Publié"
-                      : "Brouillon"
-                    : "course_id" in row
-                      ? data.courses.find((c) => c.id === row.course_id)?.title
-                      : "Ressource officielle"}
-                </small>
+                <strong>{title(row)}</strong>
+                <small>{summary(row)}</small>
               </div>
               <button className="button secondary" onClick={() => setEdit(row)}>
                 <Pencil size={16} />
                 Modifier
               </button>
+              {deleteRow === row.id ? (
+                <div className="delete-confirm">
+                  <button
+                    disabled={busy}
+                    onClick={async () => {
+                      if (
+                        await run(
+                          () => api.remove(tab as Kind, row.id),
+                          "Élément supprimé.",
+                        )
+                      )
+                        setDeleteRow("");
+                    }}
+                  >
+                    Supprimer
+                  </button>
+                  <button onClick={() => setDeleteRow("")}>Garder</button>
+                </div>
+              ) : (
+                <button
+                  className="icon-button"
+                  aria-label={`Supprimer ${title(row)}`}
+                  onClick={() => setDeleteRow(row.id)}
+                >
+                  <Trash2 size={17} />
+                </button>
+              )}
             </article>
           ))}
+          {!(data[tab as Kind] as Editable[]).length && (
+            <Empty>Aucun élément. Utilisez « Ajouter ».</Empty>
+          )}
         </div>
       )}
     </>
