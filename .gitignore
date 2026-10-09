@@ -15,3 +15,16 @@ playwright-report/
 ParentEd/
 backups/
 .claude/
+
+# Local credentials, key material, exports and generated media
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+service-account*.json
+*.log
+video/out/
+video/node_modules/
+video/dist/
+coverage/

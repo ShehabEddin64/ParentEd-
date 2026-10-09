@@ -14,7 +14,7 @@ const literal = (x) =>
         ? "array[" + x.map(quote).join(",") + "]::text[]"
         : quote(x);
 // Shared content only. Rows that reference accounts (created_by, profile_id) are neutralised:
-// the accounts are created separately and linked by scripts/seed-users.mjs or by an operator.
+// tests create their own isolated account fixtures; no live accounts are provisioned.
 const contentTables = [
   "courses",
   "lessons",

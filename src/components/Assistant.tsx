@@ -84,7 +84,7 @@ const faq: { q: string[]; a: string; hits?: Hit[] }[] = [
   },
   {
     q: ["tuteur", "tutorat", "rendez-vous", "réserv", "coach", "conseill"],
-    a: "Depuis la page Rendez-vous, choisissez un tuteur, un conseiller ou un coach, puis un créneau libre dans son calendrier : la réservation est confirmée tout de suite. Les tuteurs et coachs facturent directement la famille; les rencontres avec un conseiller sont comprises.",
+    a: "Depuis la page Rendez-vous, choisissez un tuteur, un conseiller ou un coach, puis un créneau libre dans son calendrier : la réservation fictive est enregistrée localement. Aucun intervenant réel n’est contacté et aucun paiement n’est effectué.",
   },
   {
     q: ["programme", "curriculum", "calendrier", "import", "google"],
@@ -100,7 +100,7 @@ const faq: { q: string[]; a: string; hits?: Hit[] }[] = [
   },
   {
     q: ["mot de passe", "connexion", "compte"],
-    a: "Depuis la page de connexion, « Mot de passe oublié » envoie un lien de réinitialisation par courriel. Chaque parent a son compte; la famille et ses documents restent privés.",
+    a: "Cette démonstration utilise des profils fictifs, sans mot de passe ni courriel. Les essais restent dans le navigateur; n’y ajoutez pas de données personnelles.",
   },
 ];
 function search(q: string, data: Props["data"]): Hit[] {
@@ -192,15 +192,11 @@ const icons = {
   page: Sparkles,
   event: MapPin,
 };
-export function Assistant({ data, profile, api }: Props) {
+export function Assistant({ data }: Props) {
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
-  const [ai, setAi] = useState<boolean | null>(
-    api.mode === "supabase" ? null : false,
-  );
   const [input, setInput] = useState("");
-  const [remaining, setRemaining] = useState<number | null>(null);
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
     end.current?.scrollIntoView({ block: "end" });
@@ -219,42 +215,10 @@ export function Assistant({ data, profile, api }: Props) {
     const next: Turn[] = [...turns, { role: "user", content: q }];
     setTurns(next);
     setBusy(true);
-    try {
-      const result =
-        ai === false
-          ? null
-          : await api.askAssistant(
-              next.map(({ role, content }) => ({ role, content })),
-            );
-      const answer = result?.answer ?? null;
-      if (result?.remaining !== undefined) setRemaining(result.remaining);
-      if (answer === null) {
-        setAi(false);
-        setTurns([...next, localAnswer(q, data)]);
-      } else {
-        setAi(true);
-        setTurns([
-          ...next,
-          {
-            role: "assistant",
-            content: answer,
-            hits: search(q, data).slice(0, 3),
-          },
-        ]);
-      }
-    } catch (err) {
-      setTurns([
-        ...next,
-        {
-          role: "assistant",
-          content: (err as Error).message + " En attendant, voici des pistes :",
-          hits: search(q, data),
-        },
-      ]);
-    } finally {
-      setBusy(false);
-    }
+    setTurns([...next, localAnswer(q, data)]);
+    setBusy(false);
   };
+
   const suggestions = [
     "Comment commencer l’école à la maison ?",
     "Comment préparer un bilan ?",
@@ -284,13 +248,7 @@ export function Assistant({ data, profile, api }: Props) {
             </span>
             <div>
               <strong>Assistant ParentEd</strong>
-              <small>
-                {ai === true
-                  ? "Répond à partir des cours et ressources ParentEd"
-                  : ai === false
-                    ? "Recherche dans les cours, ressources et pages"
-                    : "Bonjour " + profile.display_name.split(" ")[0] + " !"}
-              </small>
+              <small>Recherche locale · aucun service d’IA</small>
             </div>
           </header>
           <div className="assistant-body">
@@ -361,13 +319,6 @@ export function Assistant({ data, profile, api }: Props) {
               <Send size={16} />
             </button>
           </form>
-          {remaining !== null && (
-            <p className="assistant-quota">
-              {remaining > 0
-                ? `${remaining} question${remaining > 1 ? "s" : ""} restante${remaining > 1 ? "s" : ""} aujourd’hui`
-                : "Quota du jour atteint : la recherche intégrée reste disponible."}
-            </p>
-          )}
           <footer className="assistant-foot">
             <a href="#tutorat" onClick={() => setOpen(false)}>
               <GraduationCap size={14} /> Parler à un conseiller

@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 
-const AUDIO = '/Users/shehabalbikbachi/Desktop/ParentEd/video/public/audio';
+const AUDIO = 'video/public/audio';
 fs.mkdirSync(AUDIO, { recursive: true });
 
 const VOICE = 'Amélie';
@@ -76,5 +76,5 @@ for (const t of takes) {
 }
 const total = manifest.reduce((a, m) => a + m.duration, 0);
 console.log('\ntotal narration :', total.toFixed(1), 's');
-fs.writeFileSync('/Users/shehabalbikbachi/Desktop/ParentEd/video/src/narration.json',
+fs.writeFileSync('video/src/narration.json',
   JSON.stringify(manifest, null, 2));

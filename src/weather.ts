@@ -1,51 +1,20 @@
-/** Open-Meteo forecast (free, no key). Cached for 30 minutes per location in sessionStorage. */
+/** Fictional weather fixture. No network request or credentials. */
 export type Forecast = {
   current: { temperature: number; code: number };
   days: { date: string; code: number; min: number; max: number }[];
   fetched: number;
 };
-export async function forecast(lat: number, lng: number): Promise<Forecast> {
-  const key = `parented-weather:${lat.toFixed(2)},${lng.toFixed(2)}`;
-  try {
-    const cached = sessionStorage.getItem(key);
-    if (cached) {
-      const f = JSON.parse(cached) as Forecast;
-      if (Date.now() - f.fetched < 30 * 60 * 1000) return f;
-    }
-  } catch {
-    /* ignore storage errors */
-  }
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=America%2FToronto&forecast_days=4`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Météo indisponible.");
-  const j = (await res.json()) as {
-    current: { temperature_2m: number; weather_code: number };
-    daily: {
-      time: string[];
-      weather_code: number[];
-      temperature_2m_max: number[];
-      temperature_2m_min: number[];
-    };
+export async function forecast(_lat: number, _lng: number): Promise<Forecast> {
+  return {
+    current: { temperature: 19, code: 2 },
+    days: [
+      { date: "2026-09-07", code: 2, min: 12, max: 20 },
+      { date: "2026-09-08", code: 0, min: 13, max: 22 },
+      { date: "2026-09-09", code: 3, min: 11, max: 18 },
+      { date: "2026-09-10", code: 2, min: 12, max: 21 },
+    ],
+    fetched: 0,
   };
-  const f: Forecast = {
-    current: {
-      temperature: Math.round(j.current.temperature_2m),
-      code: j.current.weather_code,
-    },
-    days: j.daily.time.map((date, i) => ({
-      date,
-      code: j.daily.weather_code[i],
-      min: Math.round(j.daily.temperature_2m_min[i]),
-      max: Math.round(j.daily.temperature_2m_max[i]),
-    })),
-    fetched: Date.now(),
-  };
-  try {
-    sessionStorage.setItem(key, JSON.stringify(f));
-  } catch {
-    /* ignore */
-  }
-  return f;
 }
 export function weatherLabel(code: number) {
   if (code === 0) return "Ciel dégagé";

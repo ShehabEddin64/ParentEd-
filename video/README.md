@@ -62,11 +62,11 @@ timeline, on peut se déplacer image par image et voir l'effet d'un changement.
 Modifier les textes puis relancer le script de synthèse :
 
 ```bash
-node ../scripts-video/narration.mjs
+node scripts-video/narration.mjs
 ```
 
-(le script est aussi conservé dans le dossier de travail de la session ; il
-écrit les `.wav` dans `public/audio/` et met à jour `src/narration.json`).
+Exécuter cette commande depuis la racine du dépôt. Le script écrit les `.wav`
+dans `video/public/audio/` et met à jour `video/src/narration.json`.
 
 Pour une voix différente : `say -v '?'` liste les voix installées ; `Amélie`
 est la voix fr-CA par défaut ici. Pour une vraie voix humaine, remplacer les

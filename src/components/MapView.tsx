@@ -23,7 +23,7 @@ const glyph: Record<MarkerKind, string> = {
 };
 export const quebecCenter: [number, number] = [45.75, -73.3];
 /**
- * Interactive map on OpenStreetMap tiles (no account, no key). Markers use HTML pins so no image assets are needed.
+ * Offline schematic map: no external tiles or provider requests. Markers use HTML pins so no image assets are needed.
  * `onPick` turns the map into a location picker: clicking places a single pin and reports its coordinates.
  */
 export function MapView({
@@ -59,11 +59,9 @@ export function MapView({
       zoomControl: true,
       attributionControl: true,
     }).setView(quebecCenter, 8);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-      attribution:
-        '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>',
-    }).addTo(m);
+    m.attributionControl.addAttribution(
+      "Schéma de démonstration · données fictives",
+    );
     layer.current = L.layerGroup().addTo(m);
     m.on("click", (e: L.LeafletMouseEvent) => {
       pickRef.current?.(

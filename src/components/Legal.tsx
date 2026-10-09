@@ -39,10 +39,8 @@ export function Legal({ slug, back }: { slug: string; back: string }) {
           </section>
         ))}
         <p className="small muted legal-note">
-          <Scale size={14} /> Projet de document préparé pour ParentEd (Québec)
-          le {termsVersion}. Les passages « À COMPLÉTER » doivent être
-          renseignés et l’ensemble revu par un juriste avant la mise en service
-          publique.
+          <Scale size={14} /> Prototype Muslim Hacks Montréal · notice du{" "}
+          {termsVersion}.
         </p>
       </article>
     </div>

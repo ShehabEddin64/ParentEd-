@@ -1,6 +1,6 @@
-import { chromium } from '/Users/shehabalbikbachi/Desktop/ParentEd/node_modules/playwright/index.mjs';
+import { chromium } from '@playwright/test';
 
-const OUT = '/Users/shehabalbikbachi/Desktop/ParentEd/video/public/shots';
+const OUT = 'video/public/shots';
 const BASE = 'http://127.0.0.1:5173';
 const VP = { width: 1440, height: 900 };
 

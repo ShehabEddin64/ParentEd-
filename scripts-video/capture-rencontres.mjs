@@ -1,5 +1,5 @@
-import { chromium } from '/Users/shehabalbikbachi/Desktop/ParentEd/node_modules/playwright/index.mjs';
-const OUT='/Users/shehabalbikbachi/Desktop/ParentEd/video/public/shots';
+import { chromium } from '@playwright/test';
+const OUT='video/public/shots';
 const BASE='http://127.0.0.1:5173';
 const b=await chromium.launch();
 const ctx=await b.newContext({viewport:{width:1440,height:900},deviceScaleFactor:2,locale:'fr-CA'});

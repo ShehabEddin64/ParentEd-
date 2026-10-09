@@ -1,55 +1,18 @@
-# ParentEd — démonstration au jury
+# ParentEd — Muslim Hacks Montréal
 
-Support de présentation, distinct de l’interface familiale. Aucun barème officiel n’a été fourni.
+Projet de hackathon du propriétaire de ce dépôt. Le prototype explore comment réunir formation des parents, organisation familiale et entraide pour les familles qui enseignent à la maison.
 
-## Ce que l’on démontre
+## Parcours de démonstration
 
-ParentEd accompagne **les parents qui enseignent à la maison** : acquérir des repères, les appliquer au quotidien, conserver des traces et trouver de l’entraide. Ce n’est pas une école, une garderie ou une promesse de conformité gouvernementale.
+1. `npm ci`, puis `npm run dev`.
+2. Ouvrir http://127.0.0.1:5173 et choisir la démonstration avec Amélie.
+3. Ouvrir un cours, terminer une leçon, recharger et retrouver la progression.
+4. Ajouter une activité dans la semaine; découvrir le programme et les résultats.
+5. Consulter le portfolio avec des exemples fictifs uniquement.
+6. Explorer une discussion, un groupe et la carte schématique.
+7. S’inscrire à une rencontre fictive ou essayer un créneau de tutorat.
+8. Choisir Sami pour voir un autre contexte familial, puis Camille pour l’administration.
 
-## Préparation reproductible
+Toutes les interactions restent locales. Aucun courriel, paiement, compte réel ou rendez-vous externe n’est créé. La météo est une illustration; la carte n’utilise pas de fond externe. Les contenus pédagogiques ne sont pas une validation officielle.
 
-1. Suivre le README, démarrer `npm run dev`, ouvrir http://127.0.0.1:5173 dans un profil de navigateur neuf pour une démonstration vierge.
-2. Choisir « Explorer avec Amélie ». Annoncer une seule fois : **famille et contenus fictifs, sauvegarde dans ce navigateur; Supabase n’est pas connecté sur cette machine**.
-3. Scénario : Amélie accompagne Lina et Adam. Elle veut une semaine plus souple, quelques activités communes et des traces simples. Ce scénario illustre deux enfants d’une même famille; il ne fixe pas une taille de classe.
-4. La semaine de référence est celle du **7 au 13 septembre 2026**, indépendamment de la date du jour. Les rencontres de démonstration ont lieu les 15 et 18 septembre 2026.
-
-Avec Supabase local configuré, utiliser les comptes de démonstration créés par `npm run seed:users` et **désactiver le simulateur**. Ne dire « connecté à Supabase » qu’après avoir vérifié les comptes et les écritures dans cette instance.
-
-## Parcours, environ 6 minutes
-
-| Étape | Manipulation | Ce que cela rend concret |
-| --- | --- | --- |
-| 1. Accueil | Montrer les cours, le planning et la rencontre à venir | Un point de départ compréhensible pour le parent |
-| 2. Se former | Ouvrir « Trouver son rythme en famille », lire « Observer avant de planifier » | Les cours s’adressent à l’adulte; une idée applicable immédiatement |
-| 3. Progression | Marquer la leçon terminée; recharger la page et montrer 33 % | Une progression persistante, reprise à son rythme |
-| 4. Mardi type | Ouvrir « Ma semaine », ajouter une pause mardi à 11 h; modifier si nécessaire | Lecture partagée à 9 h, carnet nature à 10 h 30, marge pour respirer |
-| 5. Vie privée | Ouvrir « Dossier privé », déposer un PNG/PDF fictif; télécharger le fichier ou l’export | Les traces familiales sont séparées de la communauté |
-| 6. Entraide | Lire la discussion sur les promenades; publier une réponse fictive | L’expérience des parents devient une ressource partagée |
-| 7. Rencontres | S’inscrire à la matinée au jardin; recharger puis montrer le calendrier | Inscription enregistrée et rencontre située dans le temps |
-| 8. Isolation | Se déconnecter puis entrer avec Sami | Sa progression et son planning sont distincts de ceux d’Amélie |
-| 9. Tutorat | Dans « Tutorat », montrer la séance hebdomadaire de Lina avec Nadia et son compte rendu; demander une séance à Karim (mercredi) | Soutien complémentaire réservé dans ParentEd, facturé directement par le tuteur; le parent reste l’enseignant |
-| 10. Espace tutrice | Se déconnecter, entrer avec Nadia : confirmer une demande, rédiger un compte rendu | Le tuteur voit uniquement ses séances; le compte rendu est une observation, pas une évaluation officielle |
-| 11. Groupes et favoris | Rejoindre « Montréal et environs »; mettre une ressource en favori | Communauté par région ou thème; bibliothèque personnelle |
-| 12. Proposer une rencontre | Avec Amélie, proposer une rencontre; avec Camille, la publier depuis l’onglet Rencontres | Les membres animent, l’équipe vérifie avant publication |
-| 13. Administration, facultatif | Entrer avec Camille, modifier un cours, répondre à la question de Sami ou traiter un signalement | L’équipe anime et maintient les contenus; elle n’accède pas aux dossiers des familles |
-
-Pour un format de trois minutes : étapes 1 à 4, puis 7 et 9. Ne pas inventer un échange réel avec une famille, un paiement, un courriel ou une réservation externe.
-
-## Réponse au brief de modèle d’affaires
-
-Les hypothèses ci-dessous sont **des propositions de travail**, non des tarifs proposés dans le produit. Références : `ParentEd-modele-operationnel-et-financier.md`, puis les corrections de `ParentEd-couts-techniques-et-equipe.md`. Les décisions Supabase/Cloudflare remplacent les anciennes propositions Vercel.
-
-- **Qui paie et combien ?** Hypothèse historique : abonnement familial de 49 CAD/mois. Prix, contenu commercial et acceptation par les familles restent à valider. Aucun encaissement dans la V1. Les frais de tutorat restent séparés : la réservation et le compte rendu fonctionnent dans le produit, la facturation se fait entre le tuteur et la famille.
-- **Viabilité après l’année 1 ?** Le scénario corrigé retient 78 000 CAD de coûts annuels fixes. Avec l’hypothèse de frais de 2,064 CAD par mensualité, le seuil calculé est de 139 familles payantes moyennes sur douze mois; à 150 familles, résultat hypothétique de 6 484,80 CAD avant impôt et coûts additionnels. Ces calculs ne démontrent ni acquisition, ni rétention, ni capacité de support. L’année 1 exige un financement propre à valider; ce n’est pas une activité immédiatement autofinancée.
-- **Qui enseigne ?** Le parent assure l’enseignement des enfants. Une équipe pédagogique doit produire et relire les cours pour les parents. Les textes actuels sont des contenus de démonstration, pas une bibliothèque pédagogique validée. La coordination anime et modère; ses capacités humaines ne sont pas remplacées par l’application.
-- **Combien d’enfants ensemble ?** Aucun modèle de classe dans cette V1. Les rencontres supposent la présence et la supervision des parents. La proposition historique de 6 à 10 familles est un repère de confort à valider selon lieu et activité, pas un ratio légal ni une capacité imposée par le logiciel. Le tutorat individuel futur reste distinct.
-- **Un mardi type ?** Partir du planning d’Amélie : lecture ensemble, sortie d’observation, pause; garder une trace si utile et prendre un court moment de formation pour le parent. L’horaire est une illustration, pas un programme certifié. Transport, présence et supervision restent familiaux.
-- **Adaptation ailleurs ?** Le socle cours/organisation/communauté se réutilise. Les ressources, démarches, langue, horaires, services humains et contrats doivent être adaptés et revus pour chaque territoire. La disponibilité technique ne garantit pas la disponibilité d’une communauté locale.
-
-## Réellement opérationnel / limites
-
-**Exécuté en démonstration locale :** entrée dans les profils fictifs, cours avec modèles, notes et questions, progression persistante, semaine par enfant et plan hebdomadaire, portfolio, favoris, groupes, rencontres récurrentes et propositions, tutorat (demande, confirmation, compte rendu), administration de contenu; interface responsive. Les règles SQL sont exécutées par les tests PostgreSQL, y compris l’isolation de fichiers.
-
-**Implémenté, à valider sur Supabase complet :** authentification courriel/mot de passe, écritures PostgreSQL via PostgREST, fichiers privés via Storage. Aucun service distant n’a été connecté. La prévisualisation Cloudflare a été testée; aucun site publié.
-
-**À compléter pour un pilote réel :** instance Supabase, recette Auth/Storage, comptes et récupération, contenus pédagogiques et animation réelle, traitement des données et sauvegarde complète. Ensuite seulement, décider des intégrations différées : paiements, vidéo hébergée, carte embarquée, rappels par courriel et IA. Marche à suivre : `docs/deploiement.md`.
+La vidéo et les captures conservées montrent le prototype original. L’archive actuelle retire les connexions cloud et les fonctions susceptibles d’entraîner des frais. Aucun classement, prix, résultat du jury ou composition d’équipe n’est revendiqué.

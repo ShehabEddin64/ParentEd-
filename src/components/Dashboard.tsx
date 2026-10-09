@@ -693,7 +693,9 @@ function Weather({ profile }: Ctx) {
               </li>
             ))}
           </ul>
-          <small className="muted">Source : Open-Meteo</small>
+          <small className="muted">
+            Exemple fictif · aucune météo en direct
+          </small>
         </div>
       )}
     </>

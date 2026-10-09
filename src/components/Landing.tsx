@@ -1,28 +1,7 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-  type ReactNode,
-} from "react";
-import {
-  ArrowRight,
-  Check,
-  Facebook,
-  Instagram,
-  Linkedin,
-  Mail,
-  Phone,
-  Youtube,
-} from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ArrowRight, Check, Mail, Phone } from "lucide-react";
 import { legalLinks } from "../legal";
-import type { LeadInput } from "../data/gateway";
 import { landingText, loadLang, saveLang, type Lang } from "../landing-text";
-type Props = {
-  submitLead: (lead: LeadInput) => Promise<void>;
-  demoEnabled: boolean;
-  mode: "supabase" | "demo" | "none";
-};
 const floaters = [
   {
     left: "10%",
@@ -377,7 +356,8 @@ function Reveal({
     </div>
   );
 }
-export function Landing({ submitLead, demoEnabled, mode }: Props) {
+export function Landing() {
+  const demoEnabled = true;
   const heroRef = useRef<HTMLElement>(null);
   useEffect(() => {
     const hero = heroRef.current;
@@ -456,7 +436,7 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
           <a href="#connexion" className="text-link">
             {t.nav.login}
           </a>
-          <a href="#appel" className="button pop">
+          <a href="#connexion" className="button pop">
             {t.nav.call}
           </a>
         </div>
@@ -472,7 +452,7 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
           </h1>
           <p className="hero-sub">{t.hero.sub}</p>
           <div className="hero-actions">
-            <a href="#appel" className="button pop big">
+            <a href="#connexion" className="button pop big">
               {t.hero.cta} <ArrowRight size={18} />
             </a>
             <a href="#connexion" className="button ghost big">
@@ -606,7 +586,7 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
               <span />
               <span />
               <span />
-              <em>parented.parented.workers.dev</em>
+              <em>ParentEd · démo locale</em>
             </div>
             {tools.map(([key], i) => (
               <img
@@ -623,49 +603,21 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
       </section>
       <section id="offre" className="landing-section offer">
         <Reveal>
-          <h2>{t.offer.title}</h2>
+          <h2>
+            {lang === "fr"
+              ? "Créé pour Muslim Hacks, à Montréal."
+              : "Built for Muslim Hacks in Montréal."}
+          </h2>
+          <p className="section-lead">
+            {lang === "fr"
+              ? "Mon projet de hackathon : réunir les outils dont les parents-éducateurs ont besoin dans une expérience cohérente. Cette version utilise uniquement des données fictives et locales."
+              : "My hackathon project: bring the tools homeschooling parents need into one coherent experience. This edition uses fictional, local-only data."}
+          </p>
+          <a className="button pop big" href="#connexion">
+            {t.hero.demo}
+            <ArrowRight size={18} />
+          </a>
         </Reveal>
-        <div className="offer-grid">
-          <Reveal className="offer-stack">
-            <h3>{t.offer.stackTitle}</h3>
-            <ul>
-              {t.offer.stack.map(([item, value]) => (
-                <li key={item}>
-                  <Check size={18} />
-                  <span>{item}</span>
-                  <em>{value}</em>
-                </li>
-              ))}
-            </ul>
-            <div className="offer-total">
-              <span>{t.offer.totalLabel}</span>
-              <strong>{t.offer.total}</strong>
-            </div>
-            <div className="offer-bonus">
-              <strong>{t.offer.bonusTitle}</strong>
-              <p>{t.offer.bonus}</p>
-            </div>
-          </Reveal>
-          <Reveal className="price-card">
-            <p className="price-label">{t.offer.priceLabel}</p>
-            <div className="price">
-              <strong>{t.offer.price}</strong>
-              <span>{t.offer.per}</span>
-            </div>
-            <p className="price-cheaper">{t.offer.cheaper}</p>
-            <ul>
-              {t.offer.includes.map((x) => (
-                <li key={x}>
-                  <Check size={16} /> {x}
-                </li>
-              ))}
-            </ul>
-            <a href="#appel" className="button pop big">
-              {t.offer.cta} <ArrowRight size={18} />
-            </a>
-            <p className="price-guarantee">{t.offer.guarantee}</p>
-          </Reveal>
-        </div>
       </section>
       <section id="faq" className="landing-section faq">
         <Reveal>
@@ -689,11 +641,20 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
       </section>
       <section id="appel" className="landing-section contact">
         <Reveal>
-          <h2>{t.contact.title}</h2>
-          <p className="section-lead">{t.contact.lead}</p>
-        </Reveal>
-        <Reveal>
-          <LeadForm submitLead={submitLead} mode={mode} t={t.contact} />
+          <h2>
+            {lang === "fr"
+              ? "Explorez le prototype."
+              : "Explore the prototype."}
+          </h2>
+          <p className="section-lead">
+            {lang === "fr"
+              ? "Aucune inscription, aucun courriel envoyé, aucun service à payer. Choisissez un profil fictif pour essayer les parcours."
+              : "No signup, no emails sent, no paid services. Choose a fictional profile to explore the flows."}
+          </p>
+          <a href="#connexion" className="button pop big">
+            {t.hero.demo}
+            <ArrowRight size={18} />
+          </a>
         </Reveal>
       </section>
       <footer className="landing-footer">
@@ -701,36 +662,6 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
           <div className="footer-brand">
             <img src="/parented-logo.png" alt="parentEd" />
             <p>{t.footer.tagline}</p>
-            <div className="social">
-              <a
-                href="#"
-                aria-label="Instagram"
-                onClick={(e) => e.preventDefault()}
-              >
-                <Instagram size={18} />
-              </a>
-              <a
-                href="#"
-                aria-label="Facebook"
-                onClick={(e) => e.preventDefault()}
-              >
-                <Facebook size={18} />
-              </a>
-              <a
-                href="#"
-                aria-label="YouTube"
-                onClick={(e) => e.preventDefault()}
-              >
-                <Youtube size={18} />
-              </a>
-              <a
-                href="#"
-                aria-label="LinkedIn"
-                onClick={(e) => e.preventDefault()}
-              >
-                <Linkedin size={18} />
-              </a>
-            </div>
           </div>
           <div>
             <h4>{t.footer.product}</h4>
@@ -745,7 +676,7 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
             <a href="#connexion">{t.footer.login}</a>
             <a href="#connexion">{t.footer.signup}</a>
             {demoEnabled && <a href="#connexion">{t.footer.demo}</a>}
-            <a href="#appel">{t.footer.call}</a>
+            <a href="#connexion">{t.footer.call}</a>
           </div>
           <div>
             <h4>{t.footer.legal}</h4>
@@ -757,10 +688,10 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
           </div>
           <div>
             <h4>{t.footer.contact}</h4>
-            <a href="#appel">
+            <a href="#connexion">
               <Phone size={14} /> {t.footer.call}
             </a>
-            <a href="#appel">
+            <a href="#connexion">
               <Mail size={14} /> {t.footer.write}
             </a>
             <p className="footer-note">{t.footer.place}</p>
@@ -777,146 +708,5 @@ export function Landing({ submitLead, demoEnabled, mode }: Props) {
         </div>
       </footer>
     </div>
-  );
-}
-function LeadForm({
-  submitLead,
-  mode,
-  t,
-}: {
-  submitLead: (lead: LeadInput) => Promise<void>;
-  mode: Props["mode"];
-  t: (typeof landingText)["fr"]["contact"];
-}) {
-  const [kind, setKind] = useState<"appel" | "liste">("appel");
-  const [state, setState] = useState<{
-    busy: boolean;
-    done: boolean;
-    error: string;
-  }>({ busy: false, done: false, error: "" });
-  const submit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    if (String(f.get("website") || "")) return;
-    setState({ busy: true, done: false, error: "" });
-    try {
-      await submitLead({
-        kind,
-        name: String(f.get("name") || "")
-          .trim()
-          .slice(0, 120),
-        email: String(f.get("email") || "")
-          .trim()
-          .slice(0, 200),
-        message: String(f.get("message") || "")
-          .trim()
-          .slice(0, 2000),
-        preferred: String(f.get("preferred") || "")
-          .trim()
-          .slice(0, 120),
-      });
-      setState({ busy: false, done: true, error: "" });
-    } catch (err) {
-      setState({ busy: false, done: false, error: (err as Error).message });
-    }
-  };
-  if (state.done)
-    return (
-      <div className="lead-form done">
-        <span className="done-mark">
-          <Check size={26} />
-        </span>
-        <h3>{kind === "appel" ? t.doneCall : t.doneList}</h3>
-        <p>{kind === "appel" ? t.doneCallText : t.doneListText}</p>
-        {mode !== "supabase" && (
-          <small className="muted">
-            {mode === "none" ? t.noneNote : t.demoNote}
-          </small>
-        )}
-      </div>
-    );
-  return (
-    <form className="lead-form" onSubmit={submit}>
-      <div className="tabs">
-        <button
-          type="button"
-          className={kind === "appel" ? "active" : ""}
-          onClick={() => setKind("appel")}
-        >
-          {t.tabCall}
-        </button>
-        <button
-          type="button"
-          className={kind === "liste" ? "active" : ""}
-          onClick={() => setKind("liste")}
-        >
-          {t.tabList}
-        </button>
-      </div>
-      {state.error && (
-        <div className="alert" role="alert">
-          {state.error}
-        </div>
-      )}
-      <div className="form-grid">
-        <label>
-          {t.name}
-          <input
-            name="name"
-            maxLength={120}
-            required
-            placeholder={t.namePh}
-            autoComplete="given-name"
-          />
-        </label>
-        <label>
-          {t.email}
-          <input
-            name="email"
-            type="email"
-            maxLength={200}
-            required
-            placeholder="vous@exemple.ca"
-            autoComplete="email"
-          />
-        </label>
-        {kind === "appel" && (
-          <>
-            <label className="span-2">
-              {t.preferred}
-              <input
-                name="preferred"
-                maxLength={120}
-                placeholder={t.preferredPh}
-              />
-            </label>
-            <label className="span-2">
-              {t.message}
-              <textarea
-                name="message"
-                maxLength={2000}
-                placeholder={t.messagePh}
-                rows={3}
-              />
-            </label>
-          </>
-        )}
-      </div>
-      <input
-        name="website"
-        tabIndex={-1}
-        autoComplete="off"
-        className="hp"
-        aria-hidden="true"
-      />
-      <button className="button pop big" disabled={state.busy}>
-        {state.busy ? t.sending : kind === "appel" ? t.sendCall : t.sendList}{" "}
-        <ArrowRight size={18} />
-      </button>
-      <small className="muted">
-        {t.consent} <a href="#legal/confidentialite">{t.consentLink}</a>
-        {t.consentEnd}
-      </small>
-    </form>
   );
 }

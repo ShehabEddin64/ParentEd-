@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, type FormEvent } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Home,
   BookOpen,
@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { timeAgo, type Data, type Profile } from "./domain";
 import type { Gateway } from "./data/gateway";
-import { configured, SupabaseGateway } from "./data/supabase";
 import { DemoGateway } from "./data/demo";
 import { Empty } from "./components/ui";
 import { Courses } from "./components/Courses";
@@ -62,12 +61,10 @@ const navigation = [
   ["communaute", "Communauté", Users],
   ["evenements", "Rencontres", CalendarRange],
 ] as const;
-const demoEnabled =
-  import.meta.env.VITE_ENABLE_DEMO === "true" || import.meta.env.DEV;
+const demoEnabled = true;
 function initialApi(): Gateway | null {
   if (demoEnabled && sessionStorage.getItem("parented-mode") === "demo")
     return new DemoGateway();
-  if (configured) return new SupabaseGateway();
   return null;
 }
 function authHash() {
@@ -91,7 +88,6 @@ export default function App() {
   const [notice, setNotice] = useState("");
   const [page, setPage] = useState(currentPage);
   const [menu, setMenu] = useState(false);
-  const [recovery, setRecovery] = useState(false);
   const [bell, setBell] = useState(false);
   const pending = useRef(false);
   const [mobile, setMobile] = useState(
@@ -118,9 +114,6 @@ export default function App() {
       setLoading(false);
       return;
     }
-    const unsubscribe = api.onAuthEvent((event) => {
-      if (event === "recovery" && live) setRecovery(true);
-    });
     const params = new URLSearchParams(window.location.hash.slice(1));
     const urlError = params.get("error_description");
     api
@@ -132,7 +125,6 @@ export default function App() {
           if (live) setData(d);
         }
         if (authHash()) {
-          if (params.get("type") === "recovery" && live) setRecovery(true);
           history.replaceState(null, "", window.location.pathname + "#accueil");
           if (urlError && live)
             setError(
@@ -148,7 +140,6 @@ export default function App() {
       });
     return () => {
       live = false;
-      unsubscribe();
     };
   }, [api]);
   useEffect(() => {
@@ -199,7 +190,7 @@ export default function App() {
     setError("");
     try {
       const provider = demo ? new DemoGateway() : api;
-      if (!provider) throw new Error("Supabase n’est pas encore configuré.");
+      if (!provider) throw new Error("Choisissez un profil de démonstration.");
       const p = await provider.login(email, password);
       const d = await provider.load();
       if (demo) sessionStorage.setItem("parented-mode", "demo");
@@ -213,42 +204,6 @@ export default function App() {
       setBusy(false);
     }
   };
-  const signup = async (email: string, password: string, name: string) => {
-    setBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      if (!api) throw new Error("Supabase n’est pas encore configuré.");
-      const result = await api.signup(email, password, name);
-      if (result === "confirm")
-        setNotice(
-          "Compte créé. Ouvrez le courriel de confirmation, puis connectez-vous.",
-        );
-      else {
-        setProfile(result);
-        setData(await api.load());
-      }
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-  const reset = async (email: string) => {
-    setBusy(true);
-    setError("");
-    try {
-      if (!api) throw new Error("Supabase n’est pas encore configuré.");
-      await api.resetPassword(email);
-      setNotice(
-        "Si un compte existe pour ce courriel, un lien de réinitialisation vient d’être envoyé.",
-      );
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
   const logout = async () => {
     if (!api) return;
     setBusy(true);
@@ -256,10 +211,8 @@ export default function App() {
       await api.logout();
       setProfile(null);
       setData(null);
-      setRecovery(false);
       sessionStorage.removeItem("parented-mode");
-      if (api.mode === "demo")
-        setApi(configured ? new SupabaseGateway() : null);
+      if (api.mode === "demo") setApi(null);
       window.location.hash = "";
     } catch (e) {
       setError((e as Error).message);
@@ -283,32 +236,9 @@ export default function App() {
         <Legal slug={legalSlug()} back={profile ? "#accueil" : "#"} />
       </div>
     );
-  if (!profile && page !== "connexion")
-    return (
-      <Landing
-        demoEnabled={demoEnabled}
-        mode={api ? api.mode : "none"}
-        submitLead={async (lead) => {
-          const provider = api ?? (demoEnabled ? new DemoGateway() : null);
-          if (!provider)
-            throw new Error(
-              "Le site n’est pas encore relié à sa base : écrivez-nous par courriel.",
-            );
-          await provider.submitLead(lead);
-        }}
-      />
-    );
+  if (!profile && page !== "connexion") return <Landing />;
   if (!profile)
-    return (
-      <Login
-        login={login}
-        signup={signup}
-        reset={reset}
-        busy={busy}
-        error={error}
-        notice={notice}
-      />
-    );
+    return <Login login={login} busy={busy} error={error} notice={notice} />;
   const props = data && api ? { data, profile, api, run, busy } : null;
   return (
     <div className="app-shell">
@@ -447,18 +377,6 @@ export default function App() {
               <Check size={18} />
               {notice}
             </div>
-          )}
-          {recovery && api && (
-            <NewPassword
-              busy={busy}
-              onSubmit={(password) =>
-                run(async () => {
-                  await api.updatePassword(password);
-                  setRecovery(false);
-                }, "Mot de passe modifié. Vous êtes connecté.")
-              }
-              onCancel={() => setRecovery(false)}
-            />
           )}
           {!props ? (
             <Empty>
@@ -615,307 +533,96 @@ function Notifications({
     </div>
   );
 }
-function NewPassword({
-  busy,
-  onSubmit,
-  onCancel,
-}: {
-  busy: boolean;
-  onSubmit: (password: string) => Promise<boolean>;
-  onCancel: () => void;
-}) {
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [mismatch, setMismatch] = useState(false);
-  return (
-    <form
-      className="editor"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (password !== confirm) {
-          setMismatch(true);
-          return;
-        }
-        setMismatch(false);
-        void onSubmit(password);
-      }}
-    >
-      <div className="section-heading">
-        <h2>Choisir un nouveau mot de passe</h2>
-        <button type="button" className="text-button" onClick={onCancel}>
-          Plus tard
-        </button>
-      </div>
-      <div className="form-grid">
-        <label>
-          Nouveau mot de passe (12 caractères minimum)
-          <input
-            type="password"
-            autoComplete="new-password"
-            minLength={12}
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </label>
-        <label>
-          Confirmer
-          <input
-            type="password"
-            autoComplete="new-password"
-            minLength={12}
-            required
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-          />
-        </label>
-      </div>
-      {mismatch && (
-        <p className="small danger">
-          Les deux mots de passe ne correspondent pas.
-        </p>
-      )}
-      <div className="form-actions">
-        <button className="button primary" disabled={busy}>
-          Enregistrer le mot de passe
-        </button>
-      </div>
-    </form>
-  );
-}
 function Login({
   login,
-  signup,
-  reset,
   busy,
   error,
   notice,
 }: {
   login: (email: string, password: string, demo?: boolean) => Promise<void>;
-  signup: (email: string, password: string, name: string) => Promise<void>;
-  reset: (email: string) => Promise<void>;
   busy: boolean;
   error: string;
   notice: string;
 }) {
-  const [mode, setMode] = useState<"login" | "signup" | "reset">("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [accepted, setAccepted] = useState(false);
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    if (mode === "login") void login(email, password);
-    else if (mode === "signup") {
-      if (!accepted) return;
-      void signup(email, password, name);
-    } else void reset(email);
-  };
   return (
     <div className="login">
       <section className="login-story">
-        <a href="#" aria-label="Retour à l’accueil public">
+        <a href="#" aria-label="Retour à l’accueil">
           <img src="/parented-logo.png" alt="parentEd" />
         </a>
         <div>
-          <span className="eyebrow">Pour les parents qui font apprendre</span>
+          <span className="eyebrow">Muslim Hacks · Montréal</span>
           <h1>
-            Un peu de repères.
+            Apprendre en famille.
             <br />
-            Beaucoup de possibles.
+            Un projet de hackathon.
           </h1>
           <p>
-            Se former, organiser la semaine, trouver des ressources fiables, un
-            soutien complémentaire et une communauté active. En un seul espace.
+            Explorez ParentEd avec une famille fictive : cours, organisation,
+            communauté et rencontres.
           </p>
           <img className="story-photo" src={pages.login} alt="" />
           <span className="story-caption">
-            <Leaf size={18} /> Grandir ensemble, une découverte à la fois.
+            <Leaf size={18} />
+            Une démonstration, à votre rythme.
           </span>
         </div>
         <small>
-          Les cours ParentEd s’adressent aux parents-éducateurs. ParentEd n’est
-          ni une école ni une garantie de conformité gouvernementale.
+          Aucun compte, abonnement ou paiement. N’utilisez aucune donnée
+          personnelle.
         </small>
-        <nav className="footer-links" aria-label="Mentions légales">
-          {legalLinks.map((l) => (
-            <a key={l.href} href={l.href}>
-              {l.label}
-            </a>
-          ))}
-        </nav>
       </section>
       <section className="login-panel">
         <div className="login-form">
-          <span className="eyebrow">Votre espace parent</span>
-          <h2>
-            {mode === "signup"
-              ? "Créer votre espace familial."
-              : mode === "reset"
-                ? "Retrouver l’accès à votre espace."
-                : "Heureux de vous retrouver."}
-          </h2>
+          <span className="eyebrow">Prototype de hackathon</span>
+          <h2>Choisissez un profil fictif.</h2>
           <p>
-            {mode === "signup"
-              ? "Un compte par parent; votre famille et vos documents restent privés."
-              : mode === "reset"
-                ? "Nous vous envoyons un lien pour choisir un nouveau mot de passe."
-                : "Un petit pas aujourd’hui, de nouvelles idées pour demain."}
+            Les essais sont sauvegardés uniquement dans ce navigateur. Il ne
+            s’agit pas d’une connexion sécurisée.
           </p>
           {error && (
             <div className="alert" role="alert">
               {error}
             </div>
           )}
-          {notice && (
-            <div className="notice" role="status">
-              <Check size={17} /> {notice}
-            </div>
-          )}
-          {configured ? (
-            <form onSubmit={submit}>
-              {mode === "signup" && (
-                <label>
-                  Votre prénom (affiché dans la communauté)
-                  <input
-                    autoComplete="given-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    maxLength={80}
-                  />
-                </label>
-              )}
-              <label>
-                Adresse courriel
-                <input
-                  type="email"
-                  autoComplete="username"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </label>
-              {mode !== "reset" && (
-                <label>
-                  Mot de passe
-                  <input
-                    type="password"
-                    autoComplete={
-                      mode === "signup" ? "new-password" : "current-password"
-                    }
-                    minLength={mode === "signup" ? 12 : undefined}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </label>
-              )}
-              {mode === "signup" && (
-                <label className="checkbox-label terms">
-                  <input
-                    type="checkbox"
-                    checked={accepted}
-                    onChange={(e) => setAccepted(e.target.checked)}
-                    required
-                  />
-                  <span>
-                    J’ai lu et j’accepte les{" "}
-                    <a href="#legal/conditions">conditions d’utilisation</a> et
-                    la{" "}
-                    <a href="#legal/confidentialite">
-                      politique de confidentialité
-                    </a>
-                    . 12 caractères minimum pour le mot de passe.
-                  </span>
-                </label>
-              )}
-              <button className="button primary" disabled={busy}>
-                {busy
-                  ? "Un instant…"
-                  : mode === "signup"
-                    ? "Créer mon compte"
-                    : mode === "reset"
-                      ? "Envoyer le lien"
-                      : "Me connecter"}
-                <ArrowRight size={18} />
-              </button>
-              <div className="login-links">
-                {mode !== "login" && (
-                  <button
-                    type="button"
-                    className="text-button"
-                    onClick={() => setMode("login")}
-                  >
-                    J’ai déjà un compte
-                  </button>
-                )}
-                {mode !== "signup" && (
-                  <button
-                    type="button"
-                    className="text-button"
-                    onClick={() => setMode("signup")}
-                  >
-                    Créer un compte
-                  </button>
-                )}
-                {mode !== "reset" && (
-                  <button
-                    type="button"
-                    className="text-button"
-                    onClick={() => setMode("reset")}
-                  >
-                    Mot de passe oublié
-                  </button>
-                )}
-              </div>
-            </form>
-          ) : (
-            <div className="connection-note">
-              <LockKeyhole size={20} />
-              <p>
-                La connexion aux comptes membres sera disponible après
-                configuration de Supabase.
-              </p>
-            </div>
-          )}
-          {demoEnabled && (
-            <div className="demo-choice">
-              <span className="pill">Démonstration</span>
-              <h3>Découvrez une semaine en famille</h3>
-              <p>
-                Profils et contenus fictifs. Vos essais restent dans ce
-                navigateur. N’y ajoutez aucune donnée personnelle.
-              </p>
+          {notice && <div role="status">{notice}</div>}
+          <div className="demo-choice">
+            <span className="pill">Démonstration locale</span>
+            <button
+              className="button primary"
+              disabled={busy}
+              onClick={() => login("amelie@demo.parented.test", "", true)}
+            >
+              Explorer avec Amélie <ArrowRight size={18} />
+            </button>
+            <div className="demo-secondary">
               <button
-                className="button primary"
                 disabled={busy}
-                onClick={() => login("amelie@demo.parented.test", "", true)}
+                onClick={() => login("sami@demo.parented.test", "", true)}
               >
-                Explorer avec Amélie <ArrowRight size={18} />
+                Autre famille : Sami
               </button>
-              <div className="demo-secondary">
-                <button
-                  disabled={busy}
-                  onClick={() => login("sami@demo.parented.test", "", true)}
-                >
-                  Autre famille : Sami
-                </button>
-                <button
-                  disabled={busy}
-                  onClick={() => login("nadia@demo.parented.test", "", true)}
-                >
-                  Tutrice : Nadia
-                </button>
-                <button
-                  disabled={busy}
-                  onClick={() => login("admin@demo.parented.test", "", true)}
-                >
-                  Administration
-                </button>
-              </div>
+              <button
+                disabled={busy}
+                onClick={() => login("nadia@demo.parented.test", "", true)}
+              >
+                Tutrice : Nadia
+              </button>
+              <button
+                disabled={busy}
+                onClick={() => login("admin@demo.parented.test", "", true)}
+              >
+                Administration
+              </button>
             </div>
-          )}
+          </div>
+          <nav className="footer-links" aria-label="À propos de la démo">
+            {legalLinks.map((l) => (
+              <a key={l.href} href={l.href}>
+                {l.label}
+              </a>
+            ))}
+          </nav>
         </div>
       </section>
     </div>

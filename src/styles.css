@@ -6066,3 +6066,12 @@ footer .footer-links {
     transform: none;
   }
 }
+
+/* Offline hackathon map: a diagram, not a live cartographic basemap. */
+.map-view.leaflet-container {
+  background-color: #edf3f4;
+  background-image:
+    linear-gradient(#c5d3d955 1px, transparent 1px),
+    linear-gradient(90deg, #c5d3d955 1px, transparent 1px);
+  background-size: 40px 40px;
+}

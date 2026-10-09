@@ -588,7 +588,7 @@ export const seed: Data = {
       published: true,
       kind: "tuteur",
       slot_minutes: 60,
-      meeting_url: "https://meet.jit.si/parented-nadia-demo",
+      meeting_url: null,
       contact_email: null,
     },
     {
@@ -605,7 +605,7 @@ export const seed: Data = {
       published: true,
       kind: "tuteur",
       slot_minutes: 45,
-      meeting_url: "https://meet.jit.si/parented-karim-demo",
+      meeting_url: null,
       contact_email: null,
     },
     {
@@ -623,7 +623,7 @@ export const seed: Data = {
       published: true,
       kind: "conseiller",
       slot_minutes: 30,
-      meeting_url: "https://meet.jit.si/parented-julie-demo",
+      meeting_url: null,
       contact_email: null,
     },
     {
