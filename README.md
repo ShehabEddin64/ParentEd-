@@ -55,6 +55,14 @@ These capture the original hackathon prototype; the archived version replaces li
 | --- | --- |
 | ![Weekly planning](public/images/app-semaine.jpg) | ![Appointments](public/images/app-rendezvous.jpg) |
 
+## Building with AI
+
+I used Claude Opus 5 while building ParentEd, and I also used the project to try Astra 6 when it first came out. I really liked my initial experience with Astra 6. As the context window approached its limit, though, I noticed a drop in performance. This was my personal experience during the project, rather than a formal benchmark.
+
+## Design inspiration
+
+For the brand and interface design, I drew inspiration from CRMs such as GoHighLevel and learning platforms such as Coursera and Khan Academy. I wanted ParentEd to bring family organization and learning together in one approachable experience, with its own parentEd identity and blue palette.
+
 ## Technical approach
 
 React 19, TypeScript, Vite, Leaflet and Lucide. Business rules and a data gateway are separated from the UI. The active gateway is the browser-only simulator.

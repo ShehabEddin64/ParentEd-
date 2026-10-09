@@ -1,5 +1,7 @@
 # ParentEd — archive du hackathon
 
+9 octobre 2026 : ajout au README du retour personnel du créateur sur Claude Opus 5 et ses premiers essais d’Astra 6, ainsi que des inspirations de marque et d’interface (GoHighLevel, Coursera et Khan Academy). Modification documentaire uniquement.
+
 Mise à jour : 8 octobre 2026.
 
 À la demande du propriétaire, ParentEd est désormais présenté comme son projet pour **Muslim Hacks à Montréal**, et non comme un service commercial actif.
