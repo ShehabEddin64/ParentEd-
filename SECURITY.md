@@ -18,7 +18,7 @@ Public resource links open third-party sites when clicked. Installing dependenci
 
 On 8 October 2026, a pattern scan of locally available Git history found a former **Supabase anon JWT** in an older `.env.example`. An anon key is a public client key, not a private service-role credential, but it identifies a project and can permit requests subject to that project’s policies. No matching private provider key was found by that scan; this is not proof that no credential could exist in another format or outside this repository.
 
-Removing a file from the current revision does not erase previous commits, forks, clones, GitHub caches or already-deployed bundles. History rewriting is a separate operation requiring the owner's approval. Rotate or revoke exposed credentials at the provider where possible; disabling the underlying service is what prevents use of old copies.
+Removing a file from the current revision does not erase previous commits, forks, clones, GitHub caches or already-deployed bundles. With the owner’s approval, Git history was rewritten to redact that key and its project URL. Existing clones must be replaced with a fresh clone; do not merge the old history back. Rotate or revoke exposed credentials at the provider where possible; disabling the underlying service is what prevents use of old copies.
 
 ## Previously deployed services
 

@@ -29,3 +29,5 @@ Les captures et la présentation originales sont conservées comme traces du hac
 - Compilation de production et `npm run check:safety` réussies.
 - Navigateur : accueil du hackathon, choix de profil, ouverture de cours et progression conservée dans un nouvel onglet après sélection du même profil.
 - La compilation signale un bundle JavaScript supérieur à 500 kB; optimisation reportée.
+
+Avec l’autorisation explicite du propriétaire, l’historique Git a été réécrit pour retirer l’ancienne clé publique et son URL de projet. Les anciennes copies et les services hébergés restent hors de portée de cette opération.
